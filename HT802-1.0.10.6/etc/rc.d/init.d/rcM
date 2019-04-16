@@ -1,0 +1,88 @@
+#!/bin/sh
+
+signal_exit()
+{
+	#send signal that we are done
+	scripts_signal 0
+	if [ -n "$1" ]; then
+		exit $1
+	else
+		exit 0
+	fi
+}
+
+if [ $# -lt 1 ]; then
+	signal_exit 1
+fi
+
+# force to reload rc.conf
+export conf_sourced=0
+CMD="$(echo $*|tr -s ' ')"
+while [ -n "$CMD" ]
+do
+	SCRIPT="$(echo $CMD|cut -d' ' -f1)"
+
+	case "$SCRIPT" in
+	1)
+		/etc/init.d/cron restart
+		;;
+	2)
+		/etc/init.d/telnet stop
+		/etc/init.d/sshd stop
+		/etc/init.d/sshd start
+		/etc/init.d/telnet start
+		/etc/init.d/iptables_firewall
+		;;
+	3)
+		/etc/init.d/syslog restart
+		;;
+	4)
+		/etc/init.d/load_ssl
+		/etc/init.d/reload_gs_ata
+		;;
+	5)
+		/etc/init.d/apply_country_profile reload
+		/etc/init.d/reload_gs_ata
+		;;
+	6)
+		/etc/init.d/telemetry restart
+		;;
+	7)
+		/etc/init.d/iptables_firewall
+		;;
+	8)
+		/etc/init.d/upnp
+		;;
+	9)
+		/etc/init.d/udhcp
+		;;
+	10)
+		/etc/init.d/http restart
+		/etc/init.d/iptables_firewall
+		;;
+	11)
+		/etc/init.d/snmpd restart
+		;;
+	12)
+		if [ -f /app/bin/cpestart.sh ]; then
+			/app/bin/cpestart.sh
+		fi
+		;;
+	13)
+		if [ -f /etc/rc.d/rc.network.ipv6 ]; then
+			/etc/rc.d/rc.network.ipv6 restartdhcp6c
+		fi
+		;;
+	14)
+		/etc/init.d/ddns restart
+		;;
+	esac
+	PREVCMD="$CMD"
+	CMD="$(echo $CMD|cut -d' ' -f2-)"
+	if [ "$PREVCMD" = "$CMD" ]; then
+		break
+	fi
+done
+
+signal_exit 0
+

@@ -1,0 +1,94 @@
+# for UNE
+# admin/user passwd
+2=d3c0ntr0l
+196=justr34d
+
+#
+# Acces HTTP/Telnet via WAN enabled
+190=1
+
+
+# Preferred vocoder = G729, PCMU, PCMA, G723
+57=18
+58=0
+59=8
+60=4
+
+757=18
+758=0
+759=8
+760=4
+
+557=18
+558=0
+559=8
+660=4
+
+
+# Ring Cadence = 1 sec on and 4.5 sec off
+4040=c=1000/4500;
+
+
+# CPT 
+# Dial Tone: 425Hz, -4dBm
+# Ringback Tone: 425Hz, -10dBm, 1 sec on and 4.5 sec off
+# Busy Tone: 425Hz, -10dBm, 0.5 sec on and 0.5 sec off
+# Reorder Tone: 425Hz, -10dBm, 0.24 sec on and 0.24sec off  
+# Call Waiting Tone
+4000=f1=425@-4,c=0/0;
+4001=f1=425@-10,c=1000/4500;
+4002=f1=425@-10,c=500/500;
+4003=f1=425@-10,c=240/240;
+4005=f1=425@-10,c=200/600-200/4500;
+
+
+# SLIC = Spain
+854=10
+864=10
+564=10
+
+
+# Dial Plan
+#4200={ *06xxxxxxx# | #06# | *12# | #12# | *14xxxxxxx# | #14# |  x+T |  *x+ }
+#4201={ *06xxxxxxx# | #06# | *12# | #12# | *14xxxxxxx# | #14# |  x+T |  *x+ }
+#4202={ *06xxxxxxx# | #06# | *12# | #12# | *14xxxxxxx# | #14# |  x+T |  *x+ }
+4200={ *06xxxxxxx# | *06xxxxxxxxxxxx# | *06xxxxxxxxxx# | #06# | *12# | #12# | *14xxxxxxx# | *14xxxxxxxxxxxx# | *14xxxxxxxxxx# | #14# | x+ | *x+ }
+4201={ *06xxxxxxx# | *06xxxxxxxxxxxx# | *06xxxxxxxxxx# | #06# | *12# | #12# | *14xxxxxxx# | *14xxxxxxxxxxxx# | *14xxxxxxxxxx# | #14# | x+ | *x+ }
+4202={ *06xxxxxxx# | *06xxxxxxxxxxxx# | *06xxxxxxxxxx# | #06# | *12# | #12# | *14xxxxxxx# | *14xxxxxxxxxxxx# | *14xxxxxxxxxx# | #14# | x+ | *x+ }
+
+
+# NAT transversal = No, but send keep alive
+52=2
+730=2
+630=2
+
+
+# Use # as Dial Key = No
+72=0
+772=0
+572=0
+
+
+# DNS Mode = SRV
+103=1
+702=1
+502=1
+
+
+# Local RTP Port for Profile 1
+39=5004
+
+
+# Preferred DTMF Method Priority 1 = RFC2833
+850=101
+860=101
+560=101
+
+
+# Hook Flash Timing = 90 -- 1000
+251=90
+252=1000
+811=90
+812=1000
+511=90
+512=1000

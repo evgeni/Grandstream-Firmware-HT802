@@ -1,0 +1,98 @@
+#!/bin/sh
+
+populate_nvram_variables()
+{
+    #get languagei, awk uses index from 1,,,...
+    
+    index=$(($(nvram get 342)+1))   
+    model="`nvram get :prod_model`"
+    if [ -z "$index" ]; then
+        index=1  #set language to default English
+    elif [ $index -eq 11 ]; then
+       if [ $model = "HT801" -o $model = "HT802" ]; then
+          #bug 69020. for spanish IVR (P342=10), use English strings in web UI
+          index=1  #set language to default English
+       fi
+    fi
+    #the following line extracts the language strings and then nvram set :field1=lang_field
+    #the name of the pvalue is set to the default language which is in field1.
+    #e.g. for English, the commands would be nvram set :field1=field1, 
+    #for Chinese, the commands would be nvram set :field1=field4.
+    #gs_ata looks at the content of the pvalue named with the default string to set the pvalue.
+    awk -F',' '{ if ( $0 !~ /^[[:space:]]*#/ ) { system( "nvram set " "\":"$1"\"=\""$'$index'"\"" ) } }' /etc/language_strings
+}
+
+lockf=/var/lock/lang.lock
+lang_change_locked () {
+    while true; do
+        if [ ! -e ${lockf} ];then touch ${lockf}; break; fi
+		usleep 10000
+	done
+}
+
+lang_change_unlocked () {
+    rm -rf $lockf
+}
+
+if [ -n "`mount | grep 'app'`" ]; then
+	WEB_SRC='/app'
+	# Remove link setup recursively by the mount_root script
+	rm -f /tmp/html
+else
+	WEB_SRC='/app'
+fi
+
+#if language has changed do this 
+lang_change_locked
+LANG=$(nvram get 342)
+case "${LANG}" in
+    5)
+        echo "Set HTML language to Portuguese"
+        if [ -d ${WEB_SRC}/html/web.PT ]; then
+            if [ -e /tmp/web ]; then
+                rm /tmp/web
+            fi
+            ln -sf ${WEB_SRC}/html/web.PT /tmp/web
+        fi
+        ;;
+	4)
+		echo "Set HTML language to Chinese"
+		if [ -d ${WEB_SRC}/html/web.CN ]; then
+			if [ -e /tmp/web ]; then
+				rm /tmp/web
+			fi
+			ln -sf ${WEB_SRC}/html/web.CN /tmp/web
+		fi
+		;;
+    6)
+		echo "Set HTML language to Russian"
+		if [ -d ${WEB_SRC}/html/web.RU ]; then
+			if [ -e /tmp/web ]; then
+				rm /tmp/web
+			fi
+			ln -sf ${WEB_SRC}/html/web.RU /tmp/web
+		fi
+		;;
+    10)
+		echo "Set HTML language to Spanish"
+		if [ -d ${WEB_SRC}/html/web.SP ]; then
+			if [ -e /tmp/web ]; then
+				rm /tmp/web
+			fi
+			ln -sf ${WEB_SRC}/html/web.SP /tmp/web
+		fi
+		;;
+	*)
+		echo "Set HTML language to default (English)"
+		if [ -d ${WEB_SRC}/html/web ]; then
+			if [ -e /tmp/web ]; then
+				rm /tmp/web
+			fi
+			ln -sf ${WEB_SRC}/html/web /tmp/web
+		fi
+		;;
+esac
+nvram set :342a=$LANG
+lang_change_unlocked
+
+populate_nvram_variables

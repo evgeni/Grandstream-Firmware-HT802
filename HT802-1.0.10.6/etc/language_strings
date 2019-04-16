@@ -1,0 +1,51 @@
+#file format: English,,,,,Chinese,Portuguese,,,,,Spanish
+#English=0, Chinese=4, Portuguese=5, Russian=6, Spanish=10
+#Please follow format and do not comment or blank lines.
+Registered,,,,已注册,Registrado,Зарегистрирован,,,,Registrado
+Not Registered,,,,未注册,Não Registrado,Не зарегистрирован,,,,No Registrado
+Off Hook,,,,摘机,Fora do Gancho,Занят,,,,Desconectado
+On Hook,,,,挂机,No gancho,Готов,,,,Conectado
+Busy,,,,忙,Ocupado,Занят,,,,Ocupado
+In Use,,,,使用中,Em uso,Разговор,,,,En Uso
+Idle,,,,空闲,Inativo,Ожидание,,,,Inactivo
+Ring,,,,响铃,Toque,Вызов,,,,Timbre
+Ring Back,,,,回铃,Tocando,КПВ,,,,Timbrando
+Yes,,,,是,Sim,да,,,,Sí
+No,,,,否,Não,нет,,,,No
+Disabled,,,,已禁用,Desabilitado,Отключен,,,,Deshabilitado
+Enabled,,,,已启用,Habilitado,Включен,,,,Habilitado
+Open Internet,,,,打开网络,Internet Aberta,Белый IP,,,,Internet Abierto
+Full Cone NAT,,,,完全圆锥型NAT,NAT Tipo \"Full Cone\",Полный NAT,,,,NAT cónico completo - Reenvió de Puertos
+Restricted Cone NAT,,,,受限圆锥型NAT,NAT Tipo \"Restricted Cone\",NAT с проверкой адреса,,,,NAT cónico restringido - Reenvió de Puertos Restringido
+Port Restricted Cone NAT,,,,端口受限圆锥型NAT,NAT Tipo \"Port Restricted\",NAT с проверкой адреса и порта,,,,NAT cónico de puerto restringido - Puerto Restringido para Reenvió de Puerto
+Symmetric NAT,,,,对称NAT,NAT Simétrico,Симметричный NAT,,,,NAT Simétrico
+Symmetric UDP,,,,对称UDP,UDP Simétrico,Симметричный UDP,,,,UDP Simétrico
+UDP Blocked,,,,UDP封锁,UDP Bloqueado,UDP заблокирован,,,,UDP Bloqueado
+Unknown NAT,,,,未知NAT,NAT Desconhecido,Неизвестный NAT,,,,NAT Desconocido
+Unknown,,,,未知,Desconhecido,Неизвестно,,,,Desconocido
+Cannot find file source.,,,,请求文件不存在.,Não foi possivel encontrar o origem do arquivo.,Невозможно найти файл.,,,,No se puede encontrar el origen del archivo.
+Downloading file from url.,,,,尝试下载文件.,A descarregar o arquivo a partir da URL.,Идет загрузка файла.,,,,Descargar archivo desde la URL.
+Invalid URL.,,,,非法路径.,URL inválido.,Неверный URL.,,,,URL inválida.
+Setup file for update.,,,,加载文件准备升级.,Configure arquivo para atualização.,Задайте файл обновления.,,,,Archivo de instalación para la actualización.
+Cannot download file.,,,,下载文件失败.,Não pode descarregar o arquivo.,Невозможно загрузить файл.,,,,No se puede descargar el archivo.
+Invalid firmware url.,,,,非法固件路径.,URL de firmware inválido.,Неверный URL сервера ПО.,,,,URL del firmware no válida.
+Unable to download config data.,,,,下载配置数据失败.,Não foi possivel descarregar os dados de configuração.,Недоступен файл конфигурации.,,,,No se pudo de descargar los datos de configuración.
+Downloaded config data.,,,,配置数据下载完成.,Descarregar os dados de configuração.,Загружен файл конфигурации.,,,,Datos de configuración descargados.
+Unable to decrypt config data.,,,,解密配置数据失败.,Não foi possivel desencriptar os dados de configuração.,Невозможно расшифровать файл.,,,,No se pudo descifrar los datos de configuración.
+Configuration update completed.,,,,配置更新完成.,Atualização da configuração completada.,Завершено обновление.,,,,Actualización de configuración completa.
+Configuration download completed.,,,,配置下载完成.,Download da configuração completado.,Загрузка завершена.,,,,Descarga de configuración completa.
+Reboot requested due to configuration change.,,,,由于配置变动请求重启系统.,O reboot é necessário devido aos câmbios na configuração.,Необходима перезагрузка.,,,,Se reiniciará debido al cambio de configuración.
+Unable to download xml config data.,,,,下载xml配置数据失败.,Não foi possivel descarregar o arquivo XML de configuração.,Невозможно загрузить xml файл конфигурации.,,,,No se pudo descargar los datos de configuración xml.
+Downloaded xml config data.,,,,xml配置数据下载完成.,Arquivo XML de configuração descarregado.,Загружен xml файл конфигурации.,,,,Datos de configuración xml descargados.
+Unable to open temporary file for writing.,,,,以可写方式打开临时文件失败.,Não foi possivel abrir o arquivo temporal para escritura.,Невозможна запись во временный файл.,,,,No se pudo abrir el archivo temporal para editarlo.
+Parsing XML configuration failed.,,,,解析XML配置失败.,Falhou a analise do XML de configuração.,Ошибка анализа xml файла.,,,,Falló el análisis del archivo de configuración XML.
+Config file cannot be authenticated.,,,,配置文件认证失败.,O arquivo de configuração não pode ser autenticado.,Ошибка аутентификации файла конфигурации.,,,,El archivo de configuración no puede ser autenticado.
+Config file has been applied.,,,,配置文件已生效.,O arquivo de configuração foi aplicado.,Конфигурация обновлена.,,,,Se ha aplicado el archivo de configuración.
+No settings changed.,,,,没有变更配置.,Nenhuma configuração mudou.,Изменений нет.,,,,No se modificó la configuración.
+Failed to get settings changed.,,,,更新配置失败.,Falhou a alteração das configurações.,Ошибка получения изменений.,,,,22)Error al cambiar la configuración.
+Config file decryption error.,,,,配置文件解密错误.,Erro ao desencriptar o arquivo de configuração.,Ошибка расшифровки файла.,,,,Error de descifrado del archivo de configuración.
+Unable to open temporary file for writing config file.,,,,为写配置数据打开临时文件失败,Não foi possivel abrir o arquivo temporal para escritura do arquivo de configuração.,Невозможна запись во временный файл конфигурации.,,,,No se puede abrir el archivo temporal para editar el archivo de configuración.
+Firmware server is not configured.,,,,固件服务器未配置.,O servidor para firmware não está definido.,Не задан сервер ПО.,,,,El Servidor de Firmware no está configurado.
+Config update not completed.,,,,配置更新未完成.,Config update not completed.,Обновление конфигурации не завершено.,,,,Actualización de la configuración no completada.
+Config server is not configured.,,,,配置文件服务器未配置.,O servidor para configuração não está definido.,Не задан сервер конфигурации.,,,,El Servidor de Configuración no está configurado.
+Running fast configuration.,,,,运行快速配置.,Configuração rápida em andamento.,Выполняется экспресс конфигурация.,,,,Ejecutando configuración rápida.

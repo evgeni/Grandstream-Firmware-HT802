@@ -1,0 +1,19 @@
+#!/bin/sh
+
+lockf=/var/lock/lang.lock
+lang_change_locked () {
+    while true; do
+        if [ ! -e ${lockf} ];then touch ${lockf}; break; fi
+		usleep 10000
+	done
+}
+
+lang_change_unlocked () {
+    rm -rf $lockf
+}
+
+lang_change_locked
+nvparse $@
+ret=$?
+lang_change_unlocked
+return $ret

@@ -1,0 +1,53 @@
+#!/bin/sh
+
+#
+# Read Configuration File
+#
+if [ -r /tmp/config/rc.conf -a "$conf_sourced" != "1" ]; then
+    . /tmp/config/rc.conf
+fi
+
+. /etc/rc.d/init.d/functions
+
+
+TR069_WHITELIST="${TR069_WHITE_LIST}"
+# we do only listen one port on each protocol, no need to parse the port lists
+TR069_TCP_LISTEN_PORT="`nvram get :tr069_tcp_cr_port`"
+TR069_UDP_LISTEN_PORT="`nvram get :tr069_udp_cr_port`"
+WAN="`nvram get wan_device`"
+WAN_IP=""
+
+if test -n "${TR069_WHITELIST}"; then
+    /etc/rc.d/rc.network.check Device V4
+    WAN_IP=`ifconfig ${WAN} 2>/dev/null | grep -i "inet addr:" | cut -f2 -d: | cut -f1 -d" "`
+fi
+if test -n "${WAN_IP}" -a -n "${TR069_WHITELIST}"; then
+    IPArray="`get_array "${TR069_WHITELIST}" " "`"
+    for IP in ${IPArray}
+    do
+        if test -n "${TR069_TCP_LISTEN_PORT}"; then
+            iptables -D INPUT -p tcp -i ${WAN} -s ${IP} -d ${WAN_IP} --dport ${TR069_TCP_LISTEN_PORT} -j ACCEPT 2> /dev/null
+            iptables -A INPUT -p tcp -i ${WAN} -s ${IP} -d ${WAN_IP} --dport ${TR069_TCP_LISTEN_PORT} -j ACCEPT
+            iptables -D OUTPUT -p tcp -o ${WAN} -s ${WAN_IP} -d ${IP} --sport ${TR069_TCP_LISTEN_PORT} -j ACCEPT 2> /dev/null
+            iptables -A OUTPUT -p tcp -o ${WAN} -s ${WAN_IP} -d ${IP} --sport ${TR069_TCP_LISTEN_PORT} -j ACCEPT
+        fi
+        if test -n "${TR069_UDP_LISTEN_PORT}"; then
+            iptables -D INPUT -p udp -i ${WAN} -s ${IP} -d ${WAN_IP} --dport ${TR069_UDP_LISTEN_PORT} -j ACCEPT 2> /dev/null
+            iptables -A INPUT -p udp -i ${WAN} -s ${IP} -d ${WAN_IP} --dport ${TR069_UDP_LISTEN_PORT} -j ACCEPT
+            iptables -D OUTPUT -p udp -o ${WAN} -s ${WAN_IP} -d ${IP} --sport ${TR069_UDP_LISTEN_PORT} -j ACCEPT 2> /dev/null
+            iptables -A OUTPUT -p udp -o ${WAN} -s ${WAN_IP} -d ${IP} --sport ${TR069_UDP_LISTEN_PORT} -j ACCEPT
+        fi
+    done
+    if test -n "${TR069_TCP_LISTEN_PORT}"; then
+        iptables -D INPUT -p tcp -i ${WAN} --syn --dport ${TR069_TCP_LISTEN_PORT} -j DROP 2> /dev/null
+        iptables -A INPUT -p tcp -i ${WAN} --syn --dport ${TR069_TCP_LISTEN_PORT} -j DROP
+        iptables -D OUTPUT -p tcp -o ${WAN} --syn --sport ${TR069_TCP_LISTEN_PORT} -j DROP 2> /dev/null
+        iptables -A OUTPUT -p tcp -o ${WAN} --syn --sport ${TR069_TCP_LISTEN_PORT} -j DROP
+    fi
+    if test -n "${TR069_UDP_LISTEN_PORT}"; then
+        iptables -D INPUT -p udp -i ${WAN} --dport ${TR069_UDP_LISTEN_PORT} -j DROP 2> /dev/null
+        iptables -A INPUT -p udp -i ${WAN} --dport ${TR069_UDP_LISTEN_PORT} -j DROP
+        iptables -D OUTPUT -p udp -o ${WAN} --sport ${TR069_UDP_LISTEN_PORT} -j DROP 2> /dev/null
+        iptables -A OUTPUT -p udp -o ${WAN} --sport ${TR069_UDP_LISTEN_PORT} -j DROP
+    fi
+fi

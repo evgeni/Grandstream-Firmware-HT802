@@ -1,0 +1,21 @@
+#!/bin/sh
+
+DAEMONNAME="inadyn"
+DAEMONFULLPATH="/app/bin/${DAEMONNAME}"
+
+daemon()
+{
+	while :; do 
+		if [ -x "${DAEMONFULLPATH}" ]; then
+			if test -z "$(ps | grep ${DAEMONNAME} | grep -v guard | grep -v grep)" ;then
+				${DAEMONFULLPATH}
+			fi
+		else
+			logger -p kern.err -t "`nvram get syslog_id`" "${DAEMONFULLPATH} does not exist or is not executable"
+			exit -1;
+		fi
+		sleep 120
+	done
+}
+
+daemon &

@@ -1,0 +1,226 @@
+#!/bin/sh
+
+get_hour()
+{
+	local _start=$1
+	local _end=$2
+	if [ -z $end_hour ]; then
+		# no range
+		local _pick=$_start
+		echo "No end hour -> $_pick"
+	elif [ $_start -eq $_end ]; then
+		# treat as no range
+		local _pick=$_start
+		echo "No range -> $_pick"
+	else
+		# has range; randome the hour in between the range
+		if [ $_start -lt $_end ]; then
+			# non overlap case
+			local _pick=$(expr $_start + $(expr $mac_int % $(expr $_end - $_start + 1)))
+		else
+			# overlap case
+			local _pick=$(expr $_start + $(expr $mac_int % $(expr $(expr 24 - $_start) + $_end + 1)))
+			if [ $_pick -gt 23 ]; then
+				_pick=$(expr $_pick - 24)
+			fi
+		fi
+		echo "Random between [$_start:$_end] -> $_pick"
+	fi
+	return $_pick
+}
+
+get_postpone_minutes()
+{
+	local _period=$1
+	# random value is between 1 to $_period
+	local _mins=$(expr $randomdec % $_period + 1)
+	return $_mins
+}
+
+get_postpone_hours()
+{
+	local _hour=$1
+	local _current_time=`TZ=$(cat /etc/TZ) date | awk '{print $4}' | sed 's/:.*//'`
+	local _hours=$(expr 24 + $_hour - $_current_time)
+	if [ $_hours -gt 23 ]; then
+		_hours=$(expr $_hours - 24)
+	fi
+	echo "currently $_current_time, $_hours to go"
+	return $_hours
+}
+
+get_postpone_rounded_days()
+{
+	local _rounded_days=$1
+	# random value is between 0 to ($_rounded_days - 1)
+	_rounded_days=$(expr $mac_int % $_rounded_days)
+	return $_rounded_days
+}
+
+reset_crontab() {
+
+	if [ -f /var/spool/.cron_last_execution_times ]; then
+		rm /var/spool/.cron_last_execution_times
+	fi
+	if [ -s /var/spool/cron/crontabs/root ]; then
+		rm -f /var/spool/cron/crontabs/root
+		touch /var/spool/cron/crontabs/root
+	fi
+}
+
+schedule_ntp_client() {
+
+	ntp_time_interval=60
+
+	echo "2 * ${ntp_time_interval} * * * * /etc/rc.d/init.d/ntpc restart &" >> /var/spool/cron/crontabs/root
+}
+
+schedule_periodic_fw_upgrade() {
+	# Schedule for Periodic Firmware Upgrade.
+	# Create a random offset for the minute. This is used to avoid IP traffic jam at server side
+	# when many phones try to upgrade at the same scheduled time.
+
+	auto_prov_mode="$(nvram get 194)"
+	period="$(nvram get 193)"
+	randomize="$(nvram get 8458)"
+	start_hour="$(nvram get 285)"
+	end_hour="$(nvram get 8459)"
+	start_date="$(nvram get 286)"
+
+	if [ -z $end_hour -o $end_hour -lt 0 ]; then
+	    echo "end hour is not set"
+	    end_hour=
+	fi
+
+	# create a random offset for the minute
+	randomhex=`dd if=/dev/urandom bs=16 count=1 2>/dev/null | hexdump | head -1|cut -d' ' -f2 | tr '[a-f]' '[A-F]'`
+	randomdec=`echo $((0x$randomhex))`
+	crontab_minute=$(expr $randomdec % 60)
+	mac_hex=`cat /proc/gxp/dev_info/dev_mac | sed "s/.*://"`
+	mac_int=$((0x${mac_hex}))
+
+	if [ $auto_prov_mode = "0" ]; then
+		echo "Periodic upgrade disabled."
+	elif [ $auto_prov_mode = "1" ]; then
+		if [ $randomize = "1" ]; then
+			if [ $period -gt 1440 ]; then
+				# more than 1 day
+				# Periodic check every X day(s) at X hour after postponse for random X day(s)
+				local rounded_days=$(expr $period / 1440)
+				get_hour $start_hour $end_hour
+				local pick_hour=$?
+				get_postpone_hours $pick_hour
+				local postpone_hrs=$?
+				get_postpone_rounded_days $rounded_days
+				local postpone_days=$?
+				rounded_days=$(( $rounded_days * 1440))
+				local postpone_mins=$(expr $(( $postpone_days * 1440)) + $(( $postpone_hrs * 60)) + $crontab_minute)
+				echo "Periodic upgrade every $rounded_days min(s) after $postpone_days day(s) $postpone_hrs hr(s) $crontab_minute min(s) [$postpone_mins min(s)]"
+				echo "3 $postpone_mins $rounded_days * * * * /sbin/provision_cron.sh" >> /var/spool/cron/crontabs/root
+			else
+				# less than 1 day
+				# Periodic check every X minutes after postponse for random X minutes
+				get_postpone_minutes $period
+				postpone=$?
+				echo "Periodic upgrade every $period min(s) after $postpone min(s)"
+				echo "3 $postpone $period * * * * /sbin/provision_cron.sh" >> /var/spool/cron/crontabs/root
+			fi
+		else
+			# Periodic check on fixed/random X hour of everyday
+			get_hour $start_hour $end_hour
+			local pick_hour=$?
+			echo "Periodic upgrade every day at $pick_hour"
+			echo "0 * $crontab_minute $pick_hour * * * /sbin/provision_cron.sh" >> /var/spool/cron/crontabs/root
+		fi
+	elif [ $auto_prov_mode = "2" ]; then
+		if [ $randomize = "1" ]; then
+			# Periodic check on random X hour of the day on X day of the week
+			get_hour $start_hour $end_hour
+			local pick_hour=$?
+			echo "Randomized periodic upgrade every day $start_date at $pick_hour [$start_hour:$end_hour]"
+			echo "0 * $crontab_minute $pick_hour * * $start_date /sbin/provision_cron.sh" >> /var/spool/cron/crontabs/root
+		else
+			# Periodic check on X hour of the day on X day of the week
+			echo "Fixed periodic upgrade every day $start_date at $start_hour"
+			echo "0 * $crontab_minute $start_hour * * $start_date /sbin/provision_cron.sh" >> /var/spool/cron/crontabs/root
+		fi
+	elif [ $auto_prov_mode = "3" ]; then
+		# Periodic check every X minutes
+		echo "Periodic upgrade every $period min(s)"
+		echo "2 * $period * * * * /sbin/provision_cron.sh" >> /var/spool/cron/crontabs/root
+	fi
+}
+
+#SNMP Periodic trap
+schedule_snmp_trap() {
+	snmpd_enabled="$(nvram get 21896)"
+	trapsink="$(nvram get 21897)"
+	trapsinkport="$(nvram get 21898)"
+
+	if [ "x${snmpd_enabled}" != "x" -a "x${snmpd_enabled}" = "x1" -a "x${trapsink}" != "x" ]; then
+		trapinterval=`nvram get 21901`
+		if [ "x${trapinterval}" = "x" ]; then
+			trapinterval=5
+		fi
+		echo "2 * ${trapinterval} * * * * /etc/rc.d/init.d/trap" >> /var/spool/cron/crontabs/root
+	fi
+}
+
+schedule_reboot(){
+	local reboot_enabled="$(nvram get 21929)"
+	local reboot_hour="$(nvram get 21930)"
+	local reboot_wday="$(nvram get 21931)"
+	local reboot_mday="$(nvram get 28118)"
+	if [ "${reboot_enabled}" = "1" ]; then
+		echo "0 * 0 ${reboot_hour} * * * reboot" >> /var/spool/cron/crontabs/root
+	elif [ "${reboot_enabled}" = "2" ]; then
+		echo "0 * 0 ${reboot_hour} * * ${reboot_wday} reboot" >> /var/spool/cron/crontabs/root
+	elif [ "${reboot_enabled}" = "3" ]; then
+		echo "0 * 0 ${reboot_hour} ${reboot_mday} * * reboot" >> /var/spool/cron/crontabs/root
+	fi
+}
+
+start() {
+	# Set time-zone environment variable for crond localtime() call.
+	export TZ=`cat /etc/TZ`
+
+	echo "Setting cron table"
+	reset_crontab
+	schedule_ntp_client
+	schedule_periodic_fw_upgrade
+	schedule_snmp_trap
+	schedule_reboot
+
+	# Start cron daemon.
+	echo "Starting crond"
+	/usr/sbin/crond
+}
+
+stop() {
+	echo "Stopping crond"
+	killall crond 2> /dev/null
+	sleep 1
+}
+
+restart() {
+	stop
+	start
+}
+
+
+case "$1" in
+	start)
+		start
+		;;
+	stop)
+		stop
+		;;
+	restart)
+		restart
+		;;
+	*)
+		echo "Usage $0 {start|stop|restart}"
+		exit 1
+	esac
+
+exit $?

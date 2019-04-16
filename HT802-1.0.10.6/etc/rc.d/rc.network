@@ -1,0 +1,225 @@
+#!/bin/sh
+
+#nvram set :pppoe_display=1
+
+ipmode=$(nvram get 1415)
+
+if [ -r /tmp/config/rc.conf -a "$conf_sourced" != "1" ]; then
+	. /tmp/config/rc.conf
+fi
+
+if [ -r /etc/funcs.sh ]; then
+    . /etc/funcs.sh
+fi
+. /etc/rc.d/init.d/commondef
+
+ROUTER_SUPPORT=0
+if [ -e "/proc/gxp/dev_info/hw_features/gs_model" ]; then
+    gs_model=`cat /proc/gxp/dev_info/hw_features/gs_model`
+    if [ "$gs_model" = "HT81X" ];then
+        ROUTER_SUPPORT=1
+    fi
+fi
+
+init_up_interfaces() {
+	if [ $ROUTER_SUPPORT -eq 1 ];then
+		lan_if=eth0
+		wan_if=eth1
+		nvram set :lan_if=eth0
+		nvram set :wan_if=eth1
+	else
+		wan_if=eth0
+		nvram set :wan_if=eth0
+	fi
+
+	#reconfigure ethernet interface for nfs booting.
+	if [ ! -z "`grep nfs /etc/mtab`" ] && [ $ROUTER_SUPPORT -eq 1 ]; then
+		local IP1="$(ifconfig eth1 2>/dev/null|grep "inet addr"|tr -s " "|cut -d':' -f2|cut -d' ' -f1)"
+		if [ -n "$IP1" ];then
+    		echo "NFS booting: set wan_device to eth1"
+    		wan_if=eth1
+    		nvram set :wan_if=eth1
+		else
+    		echo "NFS booting: set wan_device to eth0"
+    		wan_if=eth0
+    		nvram set :wan_if=eth0
+		fi
+	fi
+
+	#Up ethernet interfaces, disable ipv6 during the initialization.
+	if [ -r /sys/class/net/eth0 ] ;then
+		/sbin/ifconfig eth0 up
+		if [ "`cat /sys/class/net/eth0/operstate`" = "unknown" ];then
+			/sbin/ifconfig eth0 down
+			/sbin/ifconfig eth0 up
+		fi
+		if [ -f /proc/net/if_inet6 ]; then
+			echo 0 > /proc/sys/net/ipv6/conf/eth0/autoconf
+			echo 1 > /proc/sys/net/ipv6/conf/eth0/disable_ipv6
+		fi
+	fi
+	if [ -r /sys/class/net/eth1 ] ;then
+		/sbin/ifconfig eth1 up
+		if [ "`cat /sys/class/net/eth1/operstate`" = "unknown" ];then
+			/sbin/ifconfig eth1 down
+			/sbin/ifconfig eth1 up
+		fi
+		if [ -f /proc/net/if_inet6 ]; then
+			echo 0 > /proc/sys/net/ipv6/conf/eth1/autoconf
+			echo 1 > /proc/sys/net/ipv6/conf/eth1/disable_ipv6
+		fi
+	fi
+	/sbin/ifconfig lo 127.0.0.1 netmask 255.0.0.0
+
+	if [ ! -z "`grep nfs /etc/mtab`" ];then
+		echo "NFS booting..skip setting for VLAN and MAC clone"
+		nvram set :wan_device=${wan_if}
+		return 0
+	fi
+
+	#If MAC clone defined, config the mac address here
+	if [ $ROUTER_SUPPORT -eq 1 ];then
+		if [ "${route_switch_mode}" = "0" -o "${route_switch_mode}" = "2" ]; then
+			if [ -n "`nvram get 115`" ]; then
+				/sbin/ifconfig ${wan_if} down
+				/sbin/ifconfig ${wan_if} hw ether ${WAN_MAC_CLONE}
+				/sbin/ifconfig ${wan_if} up 
+			fi
+		fi
+	fi
+
+	#if VLAN tag is defined, apply it and up the vlan ethernet interface.
+	#factory mode, disable vlan
+	if [ "x${FACTORYMODE}" = "x1" ]; then
+		vlan_tag=0
+	fi
+	if [ ! ${vlan_tag} = 0 ]; then
+		/sbin/ifconfig ${wan_if} 0.0.0.0
+		/sbin/vconfig add ${wan_if} $vlan_tag
+		wan_if=${wan_if}.${vlan_tag}
+		nvram set :wan_if=${wan_if}
+
+		# This is for legacy usage. The p87 will not be exposed via webUI and will be used
+		# by customers who want to preserve the old mechanism and redirect all trafic with same QoS
+		if [ ! ${qos_priority} = 0 ]; then
+			for i in `busybox seq 0 15` ; do
+			/sbin/vconfig set_egress_map ${wan_if} $i ${qos_priority}
+			done
+		fi
+		ifconfig ${wan_if} up
+	fi
+
+	# Bug 90601
+	# WAN Interface Setup.
+	if [ ${ipmode} != ${IPMODE_IPV6_ONLY} -a ${wan_ip_option} -eq 2 ];then
+		nvram set :wan_device="ppp0"
+	else
+		nvram set :wan_device=${wan_if}
+	fi
+}
+
+lan_device_setup() {
+	local lan_if="`nvram get lan_if`"
+	# Configuration for NAT/Router, up LAN interface
+	if [ $ROUTER_SUPPORT -eq 1 ] && [ -z "`grep nfs /etc/mtab`" ];then
+		if [ -f /proc/net/if_inet6 ]; then
+			echo 0 > /proc/sys/net/ipv6/conf/${lan_if}/disable_ipv6
+			echo 0 > /proc/sys/net/ipv6/conf/${lan_if}/autoconf
+		fi
+
+		if [ "${route_switch_mode}" = "0" ]; then
+			echo 0 > /proc/driver/switch/operate_mode
+			/sbin/ifconfig ${lan_if} ${lan_ipaddr} netmask ${lan_netmask}
+			#for arp announcments and replies to the correct subnet
+			echo 1 > /proc/sys/net/ipv4/conf/all/arp_ignore
+			echo 1 > /proc/sys/net/ipv4/conf/lo/arp_ignore
+			echo 1 > /proc/sys/net/ipv4/conf/${lan_if}/arp_ignore
+			echo 2 > /proc/sys/net/ipv4/conf/all/arp_announce
+			echo 2 > /proc/sys/net/ipv4/conf/lo/arp_announce
+			echo 2 > /proc/sys/net/ipv4/conf/${lan_if}/arp_announce
+	
+			# Enable IP Forwarding
+			echo 1 > /proc/sys/net/ipv4/ip_forward
+			echo 1 > /proc/sys/net/ipv4/conf/all/accept_redirects
+			# NAT and QoS settings
+			if [ -n "`nvram get 896`" -a "`nvram get 896`" != "0" ]; then
+				echo ${NAT_MAX_PORTS} > /proc/sys/net/ipv4/netfilter/ip_conntrack_max
+			fi
+			if [ -n "`nvram get 897`" -a "`nvram get 897`" != "0" ]; then
+		    	echo ${NAT_TCP_TIMEOUT} > /proc/sys/net/ipv4/netfilter/ip_conntrack_tcp_timeout_established
+			fi
+			if [ -n "`nvram get 898`" -a "`nvram get 898`" != "0" ]; then
+		    	echo ${NAT_UDP_TIMEOUT} > /proc/sys/net/ipv4/netfilter/ip_conntrack_udp_timeout_stream
+			fi
+			echo 900 > /proc/sys/net/ipv4/tcp_keepalive_time
+		elif [ "${route_switch_mode}" = "1" ] ;then
+			echo 1 > /proc/driver/switch/operate_mode
+		else
+			echo 2 > /proc/driver/switch/operate_mode
+		fi
+	fi
+}
+
+#
+# Host Name Settings
+#
+/etc/rc.d/rc.host
+
+#
+# Init and up ethernet interfaces.
+#
+init_up_interfaces
+
+# For Lan device
+# Note: both IPv4/IPv6 support
+lan_device_setup
+
+# For Wan device 
+# Set default for IP configuration if not set in NVRAM.
+# Note: ip_config = 0 (both, prefer IPv4); 1 (both, prefer IPv6); 2 (IPv4 only); 3 (IPv6 only)
+if [ -z "${ip_config}" ]; then
+	ip_config="2"  # IPv4 only to speed up a bit
+	echo "Default ip_config =" ${ip_config}
+fi
+
+case  ${ip_config} in
+	0)
+		echo "Getting IPv4 before IPv6"
+		nvram set :V4Status="Enabled"
+		nvram set :V6Status="Enabled"
+		/etc/rc.d/rc.network.ipv4
+		if [ -f /proc/net/if_inet6 ] && [ -f /etc/rc.d/rc.network.ipv6 ]; then
+			/usr/sbin/dhcp6client.sh &
+		fi
+		;;
+	1)
+		echo "Getting IPv6 before IPv4"
+		nvram set :V4Status="Enabled"
+		nvram set :V6Status="Enabled"
+		if [ -f /proc/net/if_inet6 ] && [ -f /etc/rc.d/rc.network.ipv6 ]; then
+			/usr/sbin/dhcp6client.sh &
+		fi
+		/etc/rc.d/rc.network.ipv4
+		;;
+	2)
+		echo "Getting IPv4 only"
+		nvram set :V4Status="Enabled"
+		nvram set :V6Status="Disabled"
+		/etc/rc.d/rc.network.ipv4
+		;;
+    3)
+		echo "Getting IPv6 only"
+		nvram set :V4Status="Disabled"
+		nvram set :V6Status="Enabled"
+		if [ -f /proc/net/if_inet6 ] && [ -f /etc/rc.d/rc.network.ipv6 ]; then
+			/usr/sbin/dhcp6client.sh &
+		fi
+		;;
+esac
+
+if [ $ROUTER_SUPPORT -eq 1 ];then
+    #
+    # Start DHCP Server
+    #
+    /etc/rc.d/init.d/udhcp
+fi

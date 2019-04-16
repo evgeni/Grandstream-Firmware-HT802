@@ -1,0 +1,76 @@
+#!/usr/bin/haserl
+#!/bin/ash
+<? 
+
+STATUS="`nvram get provision_status`"
+RUNNING="`nvram get provision_state`"
+LANGUAGE="`nvram get 342`"
+
+if [ "${STATUS}x" != "x" ]; then
+    TRANSLATED="`nvram get "${STATUS}"`"
+    [ -n "${TRANSLATED}" ] && STATUS="${TRANSLATED}"
+    if [ "${RUNNING}x" = "1x" ]; then
+       if [ "${LANGUAGE}x" = "4x" ]; then
+            RESULT="{\"status\":\"运行, 状态 : $STATUS\"}"
+       elif [ "${LANGUAGE}x" = "5x" ]; then
+            RESULT="{\"status\":\"Corrida, Estado : $STATUS\"}"
+       elif [ "${LANGUAGE}x" = "6x" ]; then
+            RESULT="{\"status\":\"Выполняется, Статус : $STATUS\"}"
+       elif [ "${LANGUAGE}x" = "10x" ]; then
+            RESULT="{\"status\":\"Ejecutándose, Estado : $STATUS\"}"
+       else
+            RESULT="{\"status\":\"Running, Status : $STATUS\"}"
+       fi
+    else
+       if [ "${LANGUAGE}x" = "4x" ]; then
+            RESULT="{\"status\":\"没有运行, 最后状态 : $STATUS\"}"
+       elif [ "${LANGUAGE}x" = "5x" ]; then
+            RESULT="{\"status\":\"Não está funcionando, Último estado : $STATUS\"}"
+       elif [ "${LANGUAGE}x" = "6x" ]; then
+            RESULT="{\"status\":\"Не запущен, Пред. статус : $STATUS\"}"
+       elif [ "${LANGUAGE}x" = "10x" ]; then
+            RESULT="{\"status\":\"Sin Ejecutarse, Ultimo Estado : $STATUS\"}"
+       else
+            RESULT="{\"status\":\"Not running, Last status : $STATUS\"}"
+       fi
+    fi    
+else
+    if [ "${RUNNING}x" = "1x" ]; then
+       if [ "${LANGUAGE}x" = "4x" ]; then
+            RESULT="{\"status\":\"运行\"}"
+       elif [ "${LANGUAGE}x" = "5x" ]; then
+            RESULT="{\"status\":\"Em andamento\"}"
+       elif [ "${LANGUAGE}x" = "6x" ]; then
+            RESULT="{\"status\":\"Выполняется\"}"
+       elif [ "${LANGUAGE}x" = "10x" ]; then
+            RESULT="{\"status\":\"Ejecutándose\"}"
+       else
+            RESULT="{\"status\":\"Running\"}"
+       fi
+    else
+       if [ "${LANGUAGE}x" = "4x" ]; then
+            RESULT="{\"status\":\"没有运行\"}"
+       elif [ "${LANGUAGE}x" = "5x" ]; then
+            RESULT="{\"status\":\"Não está em andamento\"}"
+       elif [ "${LANGUAGE}x" = "6x" ]; then
+            RESULT="{\"status\":\"Не запущен\"}"
+       elif [ "${LANGUAGE}x" = "10x" ]; then
+            RESULT="{\"status\":\"Sin Ejecutarse\"}"
+       else
+            RESULT="{\"status\":\"Not running\"}"
+       fi
+    fi
+fi    
+								
+HEADER="Content-Type: application/json\r\n\r\n"
+HEADER="Expires: $(date)\r\n$HEADER"
+HEADER="Cache-Control: no-cache, must-revalidate\r\n$HEADER"
+
+
+FormatTop="{\"results\":["
+FormatBottom="]}"
+
+echo -en $HEADER
+echo "$FormatTop$RESULT$FormatBottom"
+
+?>

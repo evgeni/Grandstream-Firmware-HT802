@@ -1,0 +1,33 @@
+#!/bin/sh
+
+. /etc/init.d/functions
+
+initTime=""
+CERT_TIME_FILE="/tmp/.cert.time"
+
+#Firmware time
+if [ -s /conf/firmwaretime.conf ]; then
+    FirmwareDate=$(sed -e '1p' /conf/firmwaretime.conf)
+    initTime=$(getNewerTime "${initTime}" "${FirmwareDate}")
+fi
+#Custom certificate
+if [ -n "`nvram get 8472`" ]; then
+    nvram get 8472 > "${CERT_TIME_FILE}"
+    CertDate=$(/sbin/cert_date "${CERT_TIME_FILE}" none)
+    initTime=$(getNewerTime "${initTime}" "${CertDate}")
+fi
+#SIP TLS certificate
+if [ -n "`nvram get 280`" ]; then
+    nvram get 280 > "${CERT_TIME_FILE}"
+    CertDate=$(/sbin/cert_date "${CERT_TIME_FILE}" none)
+    initTime=$(getNewerTime "${initTime}" "${CertDate}")
+fi
+if [ -e "${CERT_TIME_FILE}" ]; then
+    rm -f "${CERT_TIME_FILE}"
+fi
+if [ -n "${initTime}" ]; then
+    date -s "${initTime}"
+    echo "booting time set ${initTime}"
+else
+    echo "WARNING, fail to get the time from firmware release note or certificates" 
+fi

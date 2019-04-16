@@ -1,0 +1,62 @@
+#!/usr/bin/haserl
+<? 
+. /app/web/check.sh
+_session_id="`nvram get session_id`"
+_session_user="`nvram get :session_user`"
+_timestamp="`nvram get timestamp`"
+_cwmp_in_session="`nvram get 4500`"
+
+if equal "locked" "${_session_user}"; then
+	header
+	/app/bin/nvparse_weblocked /app/web/loginlocked.htm 2> /dev/null
+elif empty "${_session_id}" || neq "${FORM_session_id}" "${_session_id}" ; then
+	header
+	/app/bin/nvparse_weblocked /app/web/login.htm 2> /dev/null
+	nvram unset previous_page
+elif check_timestamp "${_timestamp}"; then
+	header
+	/app/bin/nvparse_weblocked /app/web/loginout.htm 2> /dev/null
+	nvram unset previous_page
+else
+    
+    if test -n "${FORM_page}" && equal "${REQUEST_METHOD}" "POST" ; then 
+        if equal "${_cwmp_in_session}" "1" ; then
+            header
+            /app/bin/nvparse_weblocked /app/web/busy.htm 2> /dev/null
+        else
+            valid=0
+            if [ "${FORM_page}" == "1" -o "${FORM_page}" == "2" -o "${FORM_page}" == "3" -o "${FORM_page}" == "4" -o "${FORM_page}" == "5" -o "${FORM_page}" == "all" ] ; then
+                valid=1
+            fi 
+            if [ "$valid" == "1" ]; then
+                nvram set :dectctl_page_"${FORM_page}"=1
+                header
+            fi
+        fi
+    elif test -n "${FORM_subscribe}" && equal "${REQUEST_METHOD}" "POST" ; then
+        if equal "${_cwmp_in_session}" "1" ; then
+            header
+            /app/bin/nvparse_weblocked /app/web/busy.htm 2> /dev/null
+        else
+            nvram set :dectctl_subscribe=1
+            header
+        fi
+    elif test -n "${FORM_desubscribe}" && equal "${REQUEST_METHOD}" "POST" ; then
+        if equal "${_cwmp_in_session}" "1" ; then
+            header
+            /app/bin/nvparse_weblocked /app/web/busy.htm 2> /dev/null
+        else
+            valid=0
+            if [ "${FORM_desubscribe}" == "1" -o "${FORM_desubscribe}" == "2" -o "${FORM_desubscribe}" == "3" -o "${FORM_desubscribe}" == "4" -o "${FORM_desubscribe}" == "5" -o "${FORM_desubscribe}" == "all" ] ; then
+                valid=1
+            fi
+            if [ "$valid" == "1" ]; then
+                nvram set :dectctl_desubscribe_"${FORM_desubscribe}"=1
+                header
+            fi
+        fi
+    fi
+fi
+
+nvram commit
+?>

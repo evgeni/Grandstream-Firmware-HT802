@@ -1,0 +1,8 @@
+# a placeholder
+# oem_default_values file must exist
+
+# device mode = Bridge
+231=1
+
+# Layer 2 QoS 802.1Q/VLAN Tag
+51=20

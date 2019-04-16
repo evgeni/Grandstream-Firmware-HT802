@@ -1,0 +1,240 @@
+#!/bin/sh
+
+PIDFILE="/var/run/snmpd.pid"
+
+boot() {
+	start
+}
+
+pv_to_seclevel() {
+	case $1 in
+		1) echo "auth";; 2) echo "priv";; 0|*) echo "noauth";;
+	esac
+}
+
+pv_to_seclevel2() {
+	case $1 in
+		1) echo "authNoPriv";; 2) echo "authPriv";; 0|*) echo "noAuthNoPriv";;
+	esac
+}
+
+pv_to_privprotocol() {
+	case $1 in
+		1) echo "DES";; 2) echo "AES";; 0|*);;
+	esac
+}
+
+pv_to_authprotocol() {
+	case $1 in
+		1) echo "MD5";; 2) echo "SHA";; 0|*);;
+	esac
+}
+
+# __seclevel, __username, __authproto, __authkey, __privproto, __privkey.
+write_userconf_line() {
+	if [ x"${__username}" != x  ];then
+		if [ x${__seclevel} = xauth ] && [ x${__authproto} != x ] && [ x${__authkey} != x ];then
+			echo "createUser ${__username} ${__authproto} ${__authkey}" >> /var/net-snmp/snmpd.conf
+		fi
+		if [ x${__seclevel} = xpriv ] && [ x${__authproto} != x ] && [ x${__authkey} != x ] && \
+			[ x${__privproto} != x ] && [ x${__privkey} != x ];then
+			echo "createUser ${__username} ${__authproto} ${__authkey} ${__privproto} ${__privkey}" >> /var/net-snmp/snmpd.conf
+		fi
+		if [ x${__seclevel} = xnoauth ];then
+			echo "createUser ${__username}" >> /var/net-snmp/snmpd.conf
+		fi
+	fi
+}
+
+create_v3users() {
+	mkdir -p /var/net-snmp && rm -rf /var/net-snmp/snmpd.conf
+
+	if [ v${snmp_trapversion} = v3 ];then
+		# User for SNMP v3 Trap
+		__username=${snmpv3_trap_username}
+		__seclevel=$(pv_to_seclevel ${snmpv3_trap_seclevel})
+		__authproto=$(pv_to_authprotocol ${snmpv3_trap_authprotocol})
+		__authkey=${snmpv3_trap_authkey}
+		__privproto=$(pv_to_privprotocol ${snmpv3_trap_privprotocol})
+		__privkey=${snmpv3_trap_privkey}
+		write_userconf_line
+	fi
+
+	if [ v${snmp_version} = v3 ];then
+		# Local User for SNMPD
+		__username=${snmpv3_username}
+		__seclevel=$(pv_to_seclevel ${snmpv3_seclevel})
+		__authproto=$(pv_to_authprotocol ${snmpv3_authprotocol})
+		__authkey=${snmpv3_authkey}
+		__privproto=$(pv_to_privprotocol ${snmpv3_privprotocol})
+		__privkey=${snmpv3_privkey}
+		write_userconf_line
+	fi
+}
+
+gen_conf() {
+	if [ "x${snmp_enabled}" = "x" -o "x${snmp_enabled}" != "x1" ];then
+		return 1
+	fi
+
+	if [ -r /tmp/config/snmpd.conf ];then
+		rm /tmp/config/snmpd.conf
+	fi
+
+	# Access Control
+	if [ -z "$snmp_port" ];then
+		snmp_port=161
+	fi
+	if [ -f /proc/net/if_inet6 ]; then
+		echo "agentAddress udp:${snmp_port},udp6:[::1]:${snmp_port}" >> /tmp/config/snmpd.conf
+	else
+		echo "agentAddress udp:${snmp_port}" >>/tmp/config/snmpd.conf
+	fi
+	echo "view   systemonly  included   .1" >>/tmp/config/snmpd.conf
+
+	# Trap Control
+	if [ "x${snmp_trapsink}" != "x" ]; then
+		if [ "x${snmp_trapsinkport}" != "x" ]; then
+			snmp_trapsink="${snmp_trapsink}:${snmp_trapsinkport}"
+		fi
+		if [ "x${snmp_trapcommunity}" = "x" ]; then
+			snmp_trapcommunity="public"
+		fi
+		case v${snmp_trapversion} in
+		v1)
+			echo "trapsink ${snmp_trapsink} ${snmp_trapcommunity}"  >> /tmp/config/snmpd.conf
+			;;
+		v3)
+			if [ "x${snmpv3_trap_username}" != "x" ]; then
+				local __trapopts="-v 3 -u ${snmpv3_trap_username}"
+				__trapopts="$__trapopts -l $(pv_to_seclevel2  ${snmpv3_trap_seclevel})"
+				__trapopts="$__trapopts ${snmp_trapsink}"
+				echo "trapsess ${__trapopts}" >> /tmp/config/snmpd.conf
+			fi
+			;;
+		v2|v*)
+			echo "trap2sink ${snmp_trapsink} ${snmp_trapcommunity}" >> /tmp/config/snmpd.conf
+			;;
+		esac
+	fi
+
+	# User/Community Control
+	case v${snmp_version} in
+	v3)
+		if [ -n ${snmpv3_username} ];then
+			echo "rouser ${snmpv3_username} $(pv_to_seclevel ${snmpv3_seclevel}) .1" >> /tmp/config/snmpd.conf
+		fi
+		ID_STR=`cat /proc/gxp/dev_info/dev_alias`
+		if [ -z ${ID_STR} ];then
+			ID_STR=Grandstream
+		fi
+		ENG_NIC=`nvram get :lan_if`
+		if [ -z $ENG_NIC ];then
+			ENG_NIC=eth0
+		fi
+		echo "engineID $ID_STR" >> /tmp/config/snmpd.conf
+		echo "engineIDType 3"  >> /tmp/config/snmpd.conf
+		echo "engineIDNic $ENG_NIC" >> /tmp/config/snmpd.conf
+		;;
+	v2|v1|v*)
+		if [ "x$snmp_community" = "x" ];then
+			snmp_community=public
+		fi
+		echo "rocommunity ${snmp_community} default -V systemonly" >>/tmp/config/snmpd.conf
+		if [ -f /proc/net/if_inet6 ]; then
+			echo "rocommunity6 ${snmp_community} default -V systemonly" >>/tmp/config/snmpd.conf
+		fi
+		;;
+	esac
+
+	# SNMPv3 USM Users
+	create_v3users
+
+	return 0
+}
+
+start() {
+	if [ -s $PIDFILE ]; then
+		echo "snmpd already running. pid = `cat $PIDFILE`"
+		exit
+	fi
+
+	if [ -r /tmp/config/rc.conf ]; then
+		. /tmp/config/rc.conf
+	fi
+
+	gen_conf || {
+		echo "snmpd is disabled."
+		return 0
+	}
+
+	/app/snmp/bin/snmpd -p $PIDFILE -c /tmp/config/snmpd.conf -f 2>&1 >/dev/null &
+
+	wait_count=0
+	while true; do
+		usleep 500000; wait_count=$((wait_count+1))
+		if [ -r $PIDFILE ];then
+			echo "snmpd started [ pid = `cat $PIDFILE` ]"
+			break
+		fi
+		if [ $wait_count -gt 10 ];then
+			break
+		fi
+	done
+
+	/etc/init.d/cron restart
+	return 0
+}
+
+stop() {
+	if [ -s $PIDFILE ]; then
+		local snmpd_pid=`cat $PIDFILE`
+		kill $snmpd_pid
+		wait_count=0
+		while true; do
+			usleep 500000; wait_count=$((wait_count+1))
+			if [ $wait_count -gt 10 ];then
+				break
+			fi
+			if [ -r $PIDFILE ];then
+				echo "snmpd still running [ pid = $snmpd_pid ]"
+				continue
+			fi
+			break
+		done
+		echo "snmpd killed."
+		rm /tmp/config/snmpd.conf
+	fi
+	return 0
+}
+
+restart() {
+	stop
+	start
+}
+
+reload() {
+	if [ -s $PIDFILE ]; then
+		kill -SIGHUP `cat $PIDFILE`
+	fi
+}
+
+case "$1" in
+boot)
+	start
+	;;
+start)
+	start
+	;;
+stop)
+	stop
+	;;
+restart)
+	restart
+	;;
+*)
+	echo $"Usage $0 {start|stop|restart|reload}"
+	exit 1
+esac
+
+exit $?

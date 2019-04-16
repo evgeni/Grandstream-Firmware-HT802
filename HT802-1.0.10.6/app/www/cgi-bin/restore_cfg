@@ -1,0 +1,1 @@
+#!/usr/bin/haserl -U /tmp -u 1024 -H /app/www/cgi-bin/prov_cfg

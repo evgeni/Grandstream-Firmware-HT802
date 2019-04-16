@@ -1,0 +1,41 @@
+#!/bin/sh
+
+if [ -r /tmp/config/rc.conf -a "$conf_sourced" != "1" ]; then
+	. /tmp/config/rc.conf
+fi
+
+start_mini_httpd() {
+	cp /conf/mini_http_ssl.conf /conf/mini_http.conf /tmp/config/
+	if [ -z "$web_access_mode" -o "$web_access_mode" = "0" ]; then
+		/usr/sbin/mini_httpd -C /tmp/config/mini_http_ssl.conf -p $web_https_port
+	else
+		/usr/sbin/mini_httpd -C /tmp/config/mini_http.conf -p $web_port
+	fi
+}
+
+start() {
+	start_mini_httpd
+}
+
+stop() {
+	killall -9 mini_httpd
+}
+
+restart() {
+	stop
+	start
+}
+
+case "${1}" in
+start)
+	start
+	;;
+stop)
+	stop
+	;;
+restart)
+	restart
+	;;
+esac
+
+exit $?

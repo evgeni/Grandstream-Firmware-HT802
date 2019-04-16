@@ -1,0 +1,158 @@
+#!/bin/sh
+
+if [ -r /tmp/config/rc.conf -a "$conf_sourced" != "1" ]; then
+    . /tmp/config/rc.conf
+fi
+
+DDNS_CONF_PATH="/tmp/config/ddns"
+DDNS_INADYN_CONF="${DDNS_CONF_PATH}/inadyn.conf"
+DDNS_PHDDNS_CONF="${DDNS_CONF_PATH}/phlinux.conf"
+DDNS_SERVER_DYNDNS=0
+DDNS_SERVER_FREEDNS=1
+DDNS_SERVER_ZONEEDIT=2
+DDNS_SERVER_NOIP=3
+DDNS_SERVER_ORAY=4
+
+encode_inadyn() {
+	local Src="${1}"
+	if test -z "${Src}"; then
+		return 1
+	fi
+	local SrcLen=${#Src}
+	local index=1
+	local Dst=""
+	local chSrc=""
+	while [ ${index} -le ${SrcLen} ];
+	do
+		chSrc="`echo ${Src} | cut -c${index}-1`"
+		case "${chSrc}" in
+			"#" | "\\" )
+				Dst="${Dst}\\${chSrc}"
+				;;
+			* )
+				Dst="${Dst}${chSrc}"
+				;;
+		esac
+		index="`expr ${index} + 1`"
+	done
+	echo ${Dst}
+	return 0
+}
+
+fast_encode_inadyn() {
+	local Src="${1}"
+	if test -z "${Src}"; then
+                return 1
+        fi
+	local Dst="`echo ${Src} | sed 's:\\\:&\\\:g'`"
+	Dst="`echo ${Dst} | sed 's:#:\\\#:g'`"
+	echo ${Dst}
+	return 0
+}
+
+update_conf() {
+
+	local DDNSServer="${ddns_server}"
+	local DDNSUsername="${ddns_username}"
+	local DDNSPassword="${ddns_password}"
+	local DDNSHostname="${ddns_hostname}"
+	local DDNSHash="${ddns_hash}"
+	local WAN_DEV="`nvram get wan_device`"
+
+	[ ! -d ${DDNS_CONF_PATH} ] && mkdir -p ${DDNS_CONF_PATH}
+	[ -z "${DDNSUsername}" ] && return 1
+	[ -z "${DDNSPassword}" ] && return 1
+	[ -z "${WAN_DEV}" ] && WAN_DEV="eth1"
+	case "${DDNSServer}" in
+		"${DDNS_SERVER_DYNDNS}" )
+			[ -z "${DDNSHostname}" ] && return 1
+			echo "username `fast_encode_inadyn ${DDNSUsername}`" > ${DDNS_INADYN_CONF}
+			echo "password `fast_encode_inadyn ${DDNSPassword}`" >> ${DDNS_INADYN_CONF}
+			echo "dyndns_system default@dyndns.org" >> ${DDNS_INADYN_CONF}
+			echo "alias `fast_encode_inadyn ${DDNSHostname}`" >> ${DDNS_INADYN_CONF}
+			;;
+		"${DDNS_SERVER_FREEDNS}" )
+			[ -z "${DDNSHostname}" ] && return 1
+			[ -z "${DDNSHash}" ] && return 1
+			echo "username `fast_encode_inadyn ${DDNSUsername}`" > ${DDNS_INADYN_CONF}
+			echo "password `fast_encode_inadyn ${DDNSPassword}`" >> ${DDNS_INADYN_CONF}
+			echo "dyndns_system default@freedns.afraid.org" >> ${DDNS_INADYN_CONF}
+			echo "alias `fast_encode_inadyn ${DDNSHostname}`,`fast_encode_inadyn ${DDNSHash}`" >> ${DDNS_INADYN_CONF}
+			;;
+		"${DDNS_SERVER_ZONEEDIT}" )
+			[ -z "${DDNSHostname}" ] && return 1
+			echo "username `fast_encode_inadyn ${DDNSUsername}`" > ${DDNS_INADYN_CONF}
+			echo "password `fast_encode_inadyn ${DDNSPassword}`" >> ${DDNS_INADYN_CONF}
+			echo "dyndns_system default@zoneedit.com" >> ${DDNS_INADYN_CONF}
+			echo "alias `fast_encode_inadyn ${DDNSHostname}`" >> ${DDNS_INADYN_CONF}
+			;;
+		"${DDNS_SERVER_NOIP}" )
+			[ -z "${DDNSHostname}" ] && return 1
+			echo "username `fast_encode_inadyn ${DDNSUsername}`" > ${DDNS_INADYN_CONF}
+			echo "password `fast_encode_inadyn ${DDNSPassword}`" >> ${DDNS_INADYN_CONF}
+			echo "dyndns_system default@no-ip.com" >> ${DDNS_INADYN_CONF}
+			echo "alias `fast_encode_inadyn ${DDNSHostname}`" >> ${DDNS_INADYN_CONF}
+			;;
+		"${DDNS_SERVER_ORAY}" )
+			echo "[settings]" > ${DDNS_PHDDNS_CONF}
+			echo "szHost = phddns60std.oray.net" >> ${DDNS_PHDDNS_CONF}
+			echo "szUserID = ${DDNSUsername}" >> ${DDNS_PHDDNS_CONF}
+			echo "szUserPWD = ${DDNSPassword}" >> ${DDNS_PHDDNS_CONF}
+			echo "nicName = ${WAN_DEV}" >> ${DDNS_PHDDNS_CONF}
+			echo "szLog = /dev/null" >> ${DDNS_PHDDNS_CONF}
+			;;
+		* )
+			logger -p kern.err -t "`nvram get syslog_id`" "Unsupported DDNS server ${DDNSServer}"
+			return 1
+			;;
+	esac
+	return 0
+}
+
+start() {
+
+	local DDNSEnable="${ddns_enable}"
+	local DDNSServer="${ddns_server}"
+	if [ -z "${DDNSEnable}" -o ${DDNSEnable} -eq 0 ]; then
+		logger -p kern.info -t "`nvram get syslog_id`" "DDNS is disabled"
+                return 0
+	fi
+	update_conf
+	if [ $? -ne 0 ];then
+		logger -p kern.err -t "`nvram get syslog_id`" "some parameters are not configured, please reconfigure"
+		return 0
+	fi
+	case "${DDNSServer}" in
+		"${DDNS_SERVER_ORAY}" )
+			/app/bin/phddns -c "${DDNS_PHDDNS_CONF}" -d
+			;;
+		* )
+			/etc/init.d/inadyn_guard
+			;;
+	esac
+}
+
+stop() {
+	killall phddns
+	killall inadyn_guard
+	killall inadyn
+}
+
+case $1 in
+	start)
+		start
+		;;
+	stop)
+		stop
+		;;
+	restart)
+		stop
+		sleep 1
+		start
+		;;
+	*)
+		N=/etc/init.d/ddns
+		echo "Usage: $N {start|stop|restart}" >&2
+		exit 1
+		;;
+esac

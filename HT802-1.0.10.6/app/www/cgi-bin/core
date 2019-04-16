@@ -1,0 +1,31 @@
+#!/usr/bin/haserl
+<? 
+. /app/web/check.sh
+_session_id="`nvram get session_id`"
+_session_user="`nvram get :session_user`"
+_timestamp="`nvram get timestamp`"
+_scriptname="`basename ${SCRIPT_NAME}`"
+
+if equal "locked" "${_session_user}"; then
+	header
+	/app/bin/nvparse_weblocked /app/web/loginlocked.htm 2> /dev/null
+elif empty "${_session_id}" || neq "${FORM_session_id}" "${_session_id}" ; then
+	header
+	/app/bin/nvparse_weblocked /app/web/login.htm 2> /dev/null
+	nvram set :previous_page="${_scriptname}"
+elif check_timestamp "${_timestamp}"; then
+	header
+	/app/bin/nvparse_weblocked /app/web/loginout.htm 2> /dev/null
+	nvram set :previous_page="${_scriptname}"
+elif neq "${_scriptname}" "login" && neq "${_scriptname}" "index" && check_user "${_scriptname}"; then
+	header
+	/app/bin/nvparse_weblocked /app/web/adminlogin.htm 2> /dev/null
+	nvram set :previous_page="${_scriptname}"
+else
+    header
+    echo "<html><body><p3>"
+    ls -1 /core | sed -e 's/\(.*\)/<a href=\"\.\.\/core\/\1\">\1<\/a>/'
+    echo "</p3></body></html>"
+fi
+
+?>

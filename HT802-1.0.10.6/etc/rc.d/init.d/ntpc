@@ -1,0 +1,98 @@
+#!/bin/sh
+
+# Check the network status here
+/etc/rc.d/rc.network.check Status
+
+DAEMON=/usr/sbin/ntpdate
+DAEMON_NTPDATE=ntpdate
+OVERRIDE_NTP_SERVER=`nvram get override_ntp_server`
+NTP_SERVER=`nvram get 30`
+
+if [ -r /tmp/config/rc.conf ]; then
+	. /tmp/config/rc.conf
+fi
+. /etc/rc.d/init.d/commondef
+
+if [ "$ip_config" = "${IPMODE_IPV6_ONLY}" ];then
+	NTP_CMD="${DAEMON} -p 2 -6"
+elif [ "$ip_config" = "${IPMODE_IPV4_ONLY}" ];then
+	NTP_CMD="${DAEMON} -p 2"
+else
+	if [ -n "${OVERRIDE_NTP_SERVER}" ]; then
+		IPV6Address="`echo ${OVERRIDE_NTP_SERVER} | grep :`"
+		if [ -n "${IPV6Address}" ];then
+			NTP_CMD="${DAEMON} -p 2 -6"
+		else
+			NTP_CMD="${DAEMON} -p 2"
+		fi
+	elif [ "$ip_config" = "${IPMODE_BOTH_PREF_IPV6}" ];then
+		NTP_CMD="${DAEMON} -p 2 -6"
+	else
+		NTP_CMD="${DAEMON} -p 2"
+	fi
+fi
+
+minuts_retry_counter=0
+minuts_retry_max=5
+
+ntpclient_start() {
+
+	minuts_retry_counter=0
+	minuts_retry_max=5
+
+	if [ -n ${NTP_SERVER} ]; then
+		while [ ${minuts_retry_counter} -lt ${minuts_retry_max} ]
+		do
+			killall ntpdate 2>/dev/null
+			if [ -z "$OVERRIDE_NTP_SERVER" -o "`nvram get 144`" != "1" ]; then
+				$NTP_CMD "${NTP_SERVER}"
+			else
+				$NTP_CMD "${OVERRIDE_NTP_SERVER}"
+			fi
+
+			status=$?
+			if [ $status -eq 0 ]; then
+				minuts_retry_counter=0
+				exit 0
+			else
+				minuts_retry_counter=$(($minuts_retry_counter+1))
+				sleep 1m
+			fi
+		done
+		exit 1
+	fi
+}
+
+ntpclient_stop() {
+	echo "Stopping ${DAEMON}"
+	killall ntpdate 2>/dev/null
+}
+
+case $1 in
+	start)
+		ntpclient_start
+		;;
+	stop)
+		ntpclient_stop
+		;;
+	restart)
+		ntpclient_stop
+		sleep 1
+		ntpclient_start
+		;;
+	status)
+		pidof ${DAEMON_NTPDATE} >/dev/null
+		status=$?
+		if [ $status -eq 0 ]; then
+			echo "ntpclient is running."
+		else
+			echo "ntpclient is not running"
+		fi
+		exit $status
+		;;
+	*)
+		N=/etc/init.d/ntpc
+		echo "Usage: $N {start|stop|restart|status}" >&2
+		exit 1
+		;;
+esac

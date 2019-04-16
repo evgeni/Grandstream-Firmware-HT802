@@ -1,0 +1,122 @@
+#!/usr/bin/haserl
+<? 
+. /app/web/check.sh
+_session_id="`nvram get session_id`"
+_session_user="`nvram get :session_user`"
+_timestamp="`nvram get timestamp`"
+_cwmp_in_session="`nvram get 4500`"
+
+check_lang
+
+staticip_validation()
+{
+    _env="env -u FORM_P8"
+    if empty "${FORM_P9}"; then
+        ip1="`nvram get 9`"
+    else
+        ip1=${FORM_P9}
+        _env="${_env} -u FORM_P9"
+    fi    
+    if empty "${FORM_P10}"; then
+        ip2="`nvram get 10`"
+    else
+        ip2=${FORM_P10}
+        _env="${_env} -u FORM_P10"
+    fi    
+    if empty "${FORM_P11}"; then
+        ip3="`nvram get 11`"
+    else
+        ip3=${FORM_P11}
+        _env="${_env} -u FORM_P11"
+    fi    
+    if empty "${FORM_P12}"; then
+        ip4="`nvram get 12`"
+    else
+        ip4=${FORM_P12}
+        _env="${_env} -u FORM_P12"
+    fi    
+    arping -q -f -w 1 "${ip1}.${ip2}.${ip3}.${ip4}"
+    if [ $? -eq 0 ]; then
+        nvram set :web_staticip_validation_error=0
+		if ${_env} nvconfig nocommit; then
+        	nvram set :web_update=0
+		fi	
+        _web_page="`nvram get present_page`"
+    	if test -n "${_web_page}"; then
+	    	/app/bin/nvparse_weblocked /app/web/${_web_page}.htm 2> /dev/null
+    	else
+	    	/app/bin/nvparse_weblocked /app/web/index.htm 2> /dev/null
+		fi	
+        nvram unset :web_staticip_validation_error
+        exit
+    fi    
+}
+
+if equal "locked" "${_session_user}"; then
+	header
+	/app/bin/nvparse_weblocked /app/web/loginlocked.htm 2> /dev/null
+elif empty "${_session_id}" || neq "${FORM_session_id}" "${_session_id}" ; then
+	header
+	/app/bin/nvparse_weblocked /app/web/login.htm 2> /dev/null
+	nvram unset previous_page
+elif check_timestamp "${_timestamp}"; then
+	header
+	/app/bin/nvparse_weblocked /app/web/loginout.htm 2> /dev/null
+	nvram unset previous_page
+else
+        if test -n "${FORM_update}" && equal "${REQUEST_METHOD}" "POST" ; then 
+			header
+		if equal "${_cwmp_in_session}" "1" ; then
+			/app/bin/nvparse_weblocked /app/web/busy.htm 2> /dev/null
+		else
+            if test -n "${FORM_P8}" && equal "${FORM_P8}" "1"; then
+                staticip_validation
+            fi    
+			if nvconfig nocommit; then
+				nvram set :web_update=0
+			fi	
+			_web_page="`nvram get present_page`"
+			if test -n "${_web_page}"; then
+				/app/bin/nvparse_weblocked /app/web/${_web_page}.htm 2> /dev/null
+			else
+				/app/bin/nvparse_weblocked /app/web/index.htm 2> /dev/null
+			fi	
+		fi
+    elif test -n "${FORM_apply}" && equal "${REQUEST_METHOD}" "POST" ; then 
+    		header
+		if equal "${_cwmp_in_session}" "1" ; then
+			/app/bin/nvparse_weblocked /app/web/busy.htm 2> /dev/null
+		else
+			_updated="`nvram get web_update`"
+			nvram unset :web_update
+            if test -n "${FORM_P8}" && equal "${FORM_P8}" "1"; then
+                staticip_validation
+            fi    
+			if nvconfig; then
+				_reboot_req="`nvram get :reboot_req`"
+				if equal "${_reboot_req}" "1" ; then
+					/app/bin/nvparse_weblocked /app/web/save_ok2.htm 2> /dev/null
+				else	
+					/app/bin/nvparse_weblocked /app/web/test_redirect.htm 2> /dev/null
+				fi
+			elif test -n "${_updated}" ; then
+				nvram commit
+				_reboot_req="`nvram get :reboot_req`"
+				if equal "${_reboot_req}" "1" ; then
+					/app/bin/nvparse_weblocked /app/web/save_ok2.htm 2> /dev/null
+				else	
+					/app/bin/nvparse_weblocked /app/web/test_redirect.htm 2> /dev/null
+				fi
+    	    else
+				_web_page="`nvram get present_page`"
+				if test -n "${_web_page}"; then
+					/app/bin/nvparse_weblocked /app/web/${_web_page}.htm 2> /dev/null
+				else
+					/app/bin/nvparse_weblocked /app/web/index.htm 2> /dev/null
+				fi	
+			fi	
+		fi
+	fi
+fi
+
+?>

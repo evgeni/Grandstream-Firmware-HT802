@@ -1,0 +1,12 @@
+# default values for Charter OEM
+
+# DNS mode = SRV
+103=1
+702=1
+
+# SIP URI Scheme Using TLS = sip
+2329=0
+2429=0
+
+# DHCP Option 17 Enterprise Number = Charter ID
+8457=9914

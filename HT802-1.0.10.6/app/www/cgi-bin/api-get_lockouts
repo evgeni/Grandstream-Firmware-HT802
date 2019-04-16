@@ -1,0 +1,35 @@
+#!/usr/bin/haserl
+#!/bin/ash
+<? 
+
+. /app/web/check.sh
+
+_last_attempt="`get_pvalue :last_attempt 0`"
+_invalid_attempts="`get_pvalue :invalid_attempts 0`"
+_access_attempts="`get_pvalue_conf 28117 5`"
+_lockout="`get_pvalue_conf 1683 10`"
+
+RESULT="{"
+_remain="`get_web_remain_duration "${_lockout}" "${_last_attempt}"`"
+if check_web_access_attempts "${_access_attempts}" "${_invalid_attempts}"; then
+	RESULT="${RESULT}\"locked\":\"true\","
+else
+	RESULT="${RESULT}\"locked\":\"false\","
+fi
+RESULT="${RESULT}\"remain\":\"${_remain}\","
+RESULT="${RESULT}\"accessattempt\":\"${_access_attempts}\","
+RESULT="${RESULT}\"invalidattempt\":\"${_invalid_attempts}\""
+RESULT="${RESULT}}"
+
+HEADER="Content-Type: application/json\r\n\r\n"
+HEADER="Expires: $(date)\r\n$HEADER"
+HEADER="Cache-Control: no-cache, must-revalidate\r\n$HEADER"
+
+
+FormatTop="{\"results\":["
+FormatBottom="]}"
+
+echo -en $HEADER
+echo "$FormatTop$RESULT$FormatBottom"
+
+?>

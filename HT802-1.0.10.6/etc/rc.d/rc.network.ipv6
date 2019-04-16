@@ -1,0 +1,295 @@
+#!/bin/sh
+
+RESOLV_CONF="/tmp/.resolv6.conf"
+DHCP6C_CONF="/tmp/config/dhcp6c.conf"
+DHCP6C_SCRIPT="/usr/share/udhcpc/dhcp6c.script"
+MAX_PROBE_TIME_NDISC=3
+MAX_PROBE_TIME_RDISC=2
+#Public variable
+
+WAN_IF="`nvram get wan_if`"
+: ${WAN_IF:="eth0"}
+
+ENTERPRISE_PEN="3561"
+ENTERPRISE_ID="`nvram get 8457`"
+
+. /etc/rc.d/init.d/functions
+
+enable_allmulti () {
+	REAL_ETH=`echo ${WAN_IF} |cut -d "." -f1`
+	# must enable allmuti for rdisc6.
+	ALL_MULTI_FLAG=0
+	if [ -z "`ifconfig ${REAL_ETH}|grep ALLMULTI`" ];then
+		ifconfig ${REAL_ETH} allmulti
+		ALL_MULTI_FLAG=1
+	fi
+}
+
+EUI_64=
+gen_eui_64()
+{
+	MAC="`ifconfig ${WAN_IF}|grep HWaddr|tr -s ' '|cut -d' ' -f5`"
+	MAC1="`echo $MAC|cut -d':' -f1`"
+	MAC2="`echo $MAC|cut -d':' -f2`"
+	MAC3="`echo $MAC|cut -d':' -f3`"
+	MAC4="`echo $MAC|cut -d':' -f4`"
+	MAC5="`echo $MAC|cut -d':' -f5`"
+	MAC6="`echo $MAC|cut -d':' -f6`"
+	MAC1=$((${MAC1}^2))
+	EUI_64="${MAC1}${MAC2}:${MAC3}FF:FE${MAC4}:${MAC5}${MAC6}"
+}
+
+get_ipv6_addr()
+{
+	RETRY=${MAX_PROBE_TIME_NDISC}
+	GET_NDISC_INFO=0
+	GET_RDISC_INFO=0
+	EADDRNOTAVAIL="Cannot assign requested address"
+	NORESPONSE="No response"
+	NDISC_ROUTE_FILE="/tmp/${WAN_IF}_ndisc.info"
+	NDISC_ROUTE_LINE_FILE="/tmp/${WAN_IF}_ndisc_link.info"
+	RDISC_ROUTE_FILE="/tmp/${WAN_IF}_rdisc.info"
+	IPV6_ROUTER_LINK_ADDR_NUM=0
+	IPV6_ROUTER_LINK_ADDR_IDX=1
+
+	nvram set :V6Status="Launching"
+	#bug 85489
+	while [ ${RETRY} -gt 0 ]
+	do
+		#bug 103440
+		/usr/sbin/ndisc6 -m -r 2 -w 2000 fe80:: ${WAN_IF} > ${NDISC_ROUTE_FILE} 2>&1
+		NDISC_ROUTE_RESULT="$(cat ${NDISC_ROUTE_FILE} | grep "${EADDRNOTAVAIL}")"
+		if [ -z "${NDISC_ROUTE_RESULT}" ];then
+			GET_NDISC_INFO=1
+			break;
+		else
+			sleep 1
+			RETRY=`expr ${RETRY} - 1`
+		fi
+	done
+	if [ ${GET_NDISC_INFO} -eq 1 ];then
+		cat ${NDISC_ROUTE_FILE} |grep "from" |tr -s ' '|cut -d' ' -f3 > ${NDISC_ROUTE_LINE_FILE} 2>&1
+		IPV6_ROUTER_LINK_ADDR_NUM="$(cat ${NDISC_ROUTE_LINE_FILE} | grep -c "")"
+	else
+		ndisc6 -1 -r 2 -w 2000 fe80:: ${WAN_IF} |grep "from" |tr -s ' '|cut -d' ' -f3 > ${NDISC_ROUTE_LINE_FILE} 2>&1
+		IPV6_ROUTER_LINK_ADDR_NUM="$(cat ${NDISC_ROUTE_LINE_FILE} | grep -c "")"
+	fi
+	if [ -e ${NDISC_ROUTE_FILE} ];then
+		rm ${NDISC_ROUTE_FILE}
+	fi
+
+	# Bug 89359
+	RETRY=${MAX_PROBE_TIME_RDISC}
+	while [ ${RETRY} -gt 0 ]
+	do
+		IPV6_ROUTER_LINK_ADDR_IDX=1
+		while [ ${IPV6_ROUTER_LINK_ADDR_IDX} -le ${IPV6_ROUTER_LINK_ADDR_NUM} ]
+		do
+			IPV6_ROUTER_LINK_ADDR="$(cat ${NDISC_ROUTE_LINE_FILE} | sed -n "${IPV6_ROUTER_LINK_ADDR_IDX}p")"
+			if test -n "${IPV6_ROUTER_LINK_ADDR}"; then
+				/usr/sbin/rdisc6 -1 -r 2 -w 2000 ${IPV6_ROUTER_LINK_ADDR} ${WAN_IF} > ${RDISC_ROUTE_FILE} 2>&1
+				RDISC_ROUTE_RESULT="$(cat ${RDISC_ROUTE_FILE} | grep "${NORESPONSE}")"
+				if [ -z "${RDISC_ROUTE_RESULT}" ];then
+					GET_RDISC_INFO=1
+					break;
+				fi
+			fi
+			IPV6_ROUTER_LINK_ADDR_IDX=`expr ${IPV6_ROUTER_LINK_ADDR_IDX} + 1`
+		done
+		if [ ${GET_RDISC_INFO} -eq 1 ];then
+			break;
+		else
+			RETRY=`expr ${RETRY} - 1`
+		fi
+	done
+	if [ ${GET_RDISC_INFO} -eq 1 ];then
+		STATEFUL="$(cat ${RDISC_ROUTE_FILE}|grep "Stateful address "|cut -d':' -f2|tr -d ' ')"
+		OTHER_CONFIGS="$(cat ${RDISC_ROUTE_FILE}|grep "Stateful other "|cut -d':' -f2|tr -d ' ')"
+	else
+		STATEFUL="$(rdisc6 -1 -r 2 -w 2000 ${IPV6_ROUTER_LINK_ADDR} ${WAN_IF}|grep "Stateful address "|cut -d':' -f2|tr -d ' ')"
+		OTHER_CONFIGS="$(rdisc6 -1 -r 2 -w 2000 ${IPV6_ROUTER_LINK_ADDR} ${WAN_IF}|grep "Stateful other "|cut -d':' -f2|tr -d ' ')"
+	fi
+	if [ -e ${RDISC_ROUTE_FILE} ];then
+		rm ${RDISC_ROUTE_FILE}
+	fi
+	if [ -e ${NDISC_ROUTE_LINE_FILE} ];then
+		rm ${NDISC_ROUTE_LINE_FILE}
+	fi
+	#IPV6_ROUTER_LINK_ADDR="$(ndisc6 -1 -r 2 -w 2000 fe80:: ${WAN_IF} |grep "from" |tr -s ' '|cut -d' ' -f3)"
+	#STATEFUL="$(rdisc6 -1 -r 2 -w 2000 ${IPV6_ROUTER_LINK_ADDR} ${WAN_IF}|grep "Stateful address "|cut -d':' -f2|tr -d ' ')"
+
+	if [ -z "$IPV6_ROUTER_LINK_ADDR" -a -z "$STATEFUL" ]; then
+		echo "IPv6 router not found."
+		OTHER_CONFIGS=
+	else
+		#OTHER_CONFIGS="$(rdisc6 -1 -r 2 -w 2000 ${IPV6_ROUTER_LINK_ADDR} ${WAN_IF}|grep "Stateful other "|cut -d':' -f2|tr -d ' ')"
+		echo "IPv6 ROUTER_LINK_ADDR =" ${IPV6_ROUTER_LINK_ADDR}
+		echo "IPv6 STATEFUL =" ${STATEFUL}
+		echo "IPv6 OTHER_CONFIGS =" ${OTHER_CONFIGS}
+	fi
+
+	# Dynamic defaults go here
+	# Set DHCP Vendor Class ID if it is reset
+	dect="$(cat /proc/gxp/dev_info/hw_features/dect)"
+	oem_id="$(cat /proc/gxp/dev_info/hw_features/oem_id)"
+	dhcpc_clientid="$(nvram get 148)"
+	if [ -z "${dhcpc_clientid}" -o "${dhcpc_clientid}" = "0" -o "${dect}" = "1" -a "${dhcpc_clientid}" = "DP7XX" -a "${oem_id}" != "0" -o "${dect}" = "0" -a "${dhcpc_clientid}" = "HT8XX" -a "${oem_id}" != "0" ]; then
+		dhcpc_clientid="`cat /proc/gxp/dev_info/hw_features/vendor` `cat /proc/gxp/dev_info/dev_alias` dslforum.org"
+	else
+		dhcpc_clientid="${dhcpc_clientid} dslforum.org"
+	fi
+
+	if [ -z "${ENTERPRISE_ID}" ]; then
+		ENTERPRISE_ID=${ENTERPRISE_PEN}
+	fi
+	if [ -n "${STATEFUL}" ] && [ "${STATEFUL}" != "Yes" ]; then
+		#enable autoconf
+		echo 1 > /proc/sys/net/ipv6/conf/${WAN_IF}/autoconf
+		if [ "${OTHER_CONFIGS}" = "Yes" ]; then
+			/usr/sbin/dhcp6c -V -i -c ${DHCP6C_CONF} -v "${dhcpc_clientid}" -E ${ENTERPRISE_ID} ${WAN_IF}
+		else
+			echo "Starting IPv6 rdnssd..."
+			/usr/sbin/rdnssd -H /usr/sbin/merge-hook -p /var/run/rdnssd.pid -r ${RESOLV_CONF} -u root
+		fi
+	else
+		echo "Starting DHCPv6 Client ...."
+		/usr/sbin/dhcp6c -V -c ${DHCP6C_CONF} -v "${dhcpc_clientid}" -E ${ENTERPRISE_ID} ${WAN_IF}
+	fi
+	nvram set :V6Status="Launched"
+}
+
+gen_dhcp6c_conf() {
+cat << EOF > ${DHCP6C_CONF}
+interface ${WAN_IF} {
+	send ia-na 1;
+	request refreshtime;
+	request domain-name-servers,domain-name;
+	request ntp-servers;
+	request sip-server-address, sip-server-domain-name;
+	script "${DHCP6C_SCRIPT}";
+};
+
+id-assoc na 1 {
+};
+EOF
+}
+
+start() {
+	if [ ! -f /proc/net/if_inet6 ]; then
+		exit
+	fi
+	
+	if [ -r /tmp/config/rc.conf ]; then
+		. /tmp/config/rc.conf
+	fi
+
+	# Bug 88715
+	> ${RESOLV_CONF}
+	> ${RESOLV_CONF}.pref
+	gen_dhcp6c_conf
+	enable_allmulti
+
+	# Bug 90601
+	#if [ "`nvram get wan_device`" = "ppp0" ] ; then
+	#	WAN="ppp0"
+	#	get_ipv6_addr
+	#	exit
+	#fi
+
+	if [ -n "${wan_ipv6_overwrite_link_local_addr}" ] && [ ${wan_ipv6_overwrite_link_local_addr} = 1 ]; then
+		LINK_LOCAL_ADDR="`ifconfig ${WAN_IF}|grep "Scope:Link"|tr -s ' '|cut -d' ' -f4`"
+		/sbin/ifconfig ${WAN_IF} del ${LINK_LOCAL_ADDR}
+		#check link local addr
+		/sbin/ifconfig ${WAN_IF} add ${wan_ipv6_link_local_addr}/${wan_ipv6_link_local_prefix_length}
+		#disable auto conf
+		echo 0 > /proc/sys/net/ipv6/conf/${WAN_IF}/autoconf
+		sleep 2
+	fi	
+
+	if [ -n "${wan_preferred_ipv6_dns}" ]; then
+		echo "nameserver ${wan_preferred_ipv6_dns}" > ${RESOLV_CONF}.pref
+	fi
+
+	case "${wan_ipv6_option}" in
+		0)
+			get_ipv6_addr
+			;;
+		1)
+			nvram set :V6Status="Launching"
+			echo "Setting fixed WAN IP Address ...."
+			case "${wan_ipv6_static_option}" in
+				0)
+					#check addr and length
+					/sbin/ifconfig ${WAN_IF} ${wan_static_ipv6_addr}/${wan_ipv6_prefix_length}
+					;;
+				1)
+					gen_eui_64
+					#check addr and length
+					/sbin/ifconfig ${WAN_IF} ${wan_static_ipv6_prefix}${EUI_64}/64
+					;;
+			esac		
+			if [ -n "${wan_ipv6_dns1}" ]; then
+				echo "nameserver ${wan_ipv6_dns1}" >> ${RESOLV_CONF}
+			fi
+			if [ -n "${wan_ipv6_dns2}" ]; then
+				echo "nameserver ${wan_ipv6_dns2}" >> ${RESOLV_CONF}
+			fi
+			if [ -z "`cat ${RESOLV_CONF} | grep '2001:4860:4860::8888'`" ]; then
+				echo nameserver 2001:4860:4860::8888 >> ${RESOLV_CONF}
+			fi
+			if [ -z "${wan_preferred_ipv6_dns}" ]; then
+				rm ${RESOLV_CONF}.pref
+			fi
+			/usr/sbin/merge-hook
+			/etc/rc.d/rc.service
+			nvram set :V6Status="Launched"
+			;;
+	esac
+}
+
+stop() {
+	if [ ! -z "`ps | awk '/[d]hcp6c /'`" ];then
+		killproc dhcp6c
+	elif [ ! -z "`ps | awk '/[r]dnssd /'`" ];then
+		killproc rdnssd
+	fi
+	ip -6 addr flush dev ${WAN_IF} scope global
+	nvram set :V6Status="Stopped"
+}
+
+restart() {
+	stop
+	start
+}
+
+restartdhcp6c() {
+	# Dynamic defaults go here
+	# Set DHCP Vendor Class ID if it is reset
+	dect="$(cat /proc/gxp/dev_info/hw_features/dect)"
+	oem_id="$(cat /proc/gxp/dev_info/hw_features/oem_id)"
+	dhcpc_clientid="$(nvram get 148)"
+	if [ -z "${dhcpc_clientid}" -o "${dhcpc_clientid}" = "0" -o "${dect}" = "1" -a "${dhcpc_clientid}" = "DP7XX" -a "${oem_id}" != "0" -o "${dect}" = "0" -a "${dhcpc_clientid}" = "HT8XX" -a "${oem_id}" != "0" ]; then
+		dhcpc_clientid="`cat /proc/gxp/dev_info/hw_features/vendor` `cat /proc/gxp/dev_info/dev_alias` dslforum.org"
+	else
+		dhcpc_clientid="${dhcpc_clientid} dslforum.org"
+	fi
+	if [ -z "${ENTERPRISE_ID}" ]; then
+		ENTERPRISE_ID=${ENTERPRISE_PEN}
+	fi
+	if [ ! -z "`ps | awk '/[d]hcp6c /'`" ];then
+		killproc dhcp6c
+		nvram set :V6Status="Stopped"
+		sleep 1
+		/usr/sbin/dhcp6c -V -i -c ${DHCP6C_CONF} -v "${dhcpc_clientid}" -E ${ENTERPRISE_ID} ${WAN_IF}
+		nvram set :V6Status="Launched"
+	fi
+}
+
+case $1 in                          
+start|stop|restart|restartdhcp6c)
+        $1                                                                         
+        ;;                                   
+*)               
+        echo "Usage: $0 {start|stop|restart}"                                    
+        ;;       
+esac

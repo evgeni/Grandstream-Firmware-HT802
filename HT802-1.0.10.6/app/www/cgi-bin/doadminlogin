@@ -1,0 +1,91 @@
+#!/usr/bin/haserl
+<? 
+. /app/web/check.sh
+_session_token="`nvram get session_token`"
+_last_attempt="`get_pvalue :last_attempt 0`"
+_invalid_attempts="`get_pvalue :invalid_attempts 0`"
+_access_attempts="`get_pvalue_conf 28117 5`"
+_lockout="`get_pvalue_conf 1683 10`"
+
+check_lang
+
+check_session_token()
+{
+	# Only POST with valid token can update the configuration
+	if neq "${REQUEST_METHOD}" "POST" ||  empty "${FORM_session_token}" || neq "${FORM_session_token}" "${_session_token}" || check_session_token_time; then
+		header
+		if equal "admin" "${_session_user}"; then
+			/app/bin/nvparse_weblocked /app/web/adminlogin.htm 2> /dev/null
+		else
+			/app/bin/nvparse_weblocked /app/web/login.htm 2> /dev/null
+		fi
+		exit
+	fi
+	generate_session_token
+}
+
+acl=""
+if check_web_access_attempts "${_access_attempts}" "${_invalid_attempts}" ;then
+	if check_web_lock_duration "${_lockout}" "${_last_attempt}"; then
+		acl="locked"
+		nvram set :session_user="locked"
+	else
+		_invalid_attempts=0;
+	fi
+fi
+if test -z "${acl}";then
+	# authenticate features called via single api
+	acl=$(access_level "${FORM_username}" "${FORM_P2}")
+fi
+_invalid_attempts="`expr ${_invalid_attempts} + 1`"
+nvram set :last_attempt="`date +%s`"
+if neq "${acl}" "admin_level" && check_web_access_attempts "${_access_attempts}" "${_invalid_attempts}" ;then
+	acl="locked"
+	nvram set :session_user="locked"
+fi
+
+if neq "${acl}" "admin_level" ; then
+	_remain_attempts="`get_web_remain_attempts "${_access_attempts}" "${_invalid_attempts}"`"
+	nvram set :remain_attempts="${_remain_attempts}"
+	header
+	/app/bin/nvparse_weblocked /app/web/loginerr.htm 2> /dev/null
+	nvram set :invalid_attempts="${_invalid_attempts}"
+elif equal "${acl}" "locked" ; then
+	header
+	/app/bin/nvparse_weblocked /app/web/loginlocked.htm 2> /dev/null
+	nvram set :invalid_attempts="${_invalid_attempts}"
+else
+	#check_session_token
+	generate_session_token
+	nvram set :invalid_attempts=0
+	nvram set :session_id="${SESSIONID}"
+	nvram set :timestamp="`date +%s`"
+	header_with_cookie
+	if empty "`nvram get previous_page`"; then
+		get_system_status
+		/app/bin/nvparse_weblocked /app/web/index.htm 2> /dev/null
+	else
+		nvram set :present_page="`nvram get previous_page`"
+		if equal "`nvram get previous_page`" "rs"; then
+			nvram unset session_id 
+			nvram unset session_user
+			nvram unset previous_page
+			nvram unset timestamp
+			_reset_lock="`nvram get :reset_lock`"
+			if neq "${_reset_lock}" "1" ; then
+				/app/bin/nvparse_weblocked /app/web/"`nvram get previous_page`".htm 2> /dev/null
+				reboot
+			else	
+				get_system_status
+				/app/bin/nvparse_weblocked /app/web/index.htm 2> /dev/null
+			fi	
+		elif equal "`nvram get previous_page`" "download_core"; then
+			get_system_status
+			/app/bin/nvparse_weblocked /app/web/index.htm 2> /dev/null
+		else
+			/app/bin/nvparse_weblocked /app/web/"`nvram get previous_page`".htm 2> /dev/null
+		fi	
+	fi
+fi
+
+?>

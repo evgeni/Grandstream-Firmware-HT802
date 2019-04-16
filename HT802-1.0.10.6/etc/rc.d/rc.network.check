@@ -1,0 +1,102 @@
+#!/bin/sh
+
+. /etc/rc.d/init.d/commondef
+
+NetworkCheckTimeout=5
+EthDeviceCheckTimeout=10
+STATUS_ENABLED="Enabled"
+STATUS_DISABLED="Disabled"
+STATUS_LAUNCHING="Launching"
+STATUS_LAUNCHED="Launched"
+STATUS_STOPPED="Stopped"
+
+CheckStatus()
+{
+    local CheckAgain=1
+    local StatusName="${1}"
+    local RETRY="${2}"
+    local Status=""
+    [ -z "${StatusName}" ] && StatusName=":V4Status"
+    [ -z "${RETRY}" ] && RETRY=${NetworkCheckTimeout}
+    while [ ${RETRY} -gt 0 ]
+    do
+        CheckAgain=1
+        Status="`nvram get ${StatusName}`"
+        if [ "${Status}" = "${STATUS_DISABLED}" -o "${Status}" = "${STATUS_LAUNCHED}" ]; then
+            CheckAgain=0
+        fi
+        if [ ${CheckAgain} -eq 1 ]; then
+          sleep 1
+          RETRY=`expr ${RETRY} - 1`
+        else
+            break
+        fi
+    done
+}
+
+CheckEthDevice()
+{
+    local CheckAgain=1
+    local IsV4="${1}"
+    local EthName="${2}"
+    local RETRY="${3}"
+    local Status=""
+    local ipmode=$(nvram get 1415)
+    [ -z "${IsV4}" ] && IsV4="4"
+    [ -z "${EthName}" ] && EthName="`nvram get wan_device`"
+    [ -z "${RETRY}" ] && RETRY=${EthDeviceCheckTimeout}
+    while [ ${RETRY} -gt 0 ]
+    do
+        CheckAgain=1
+        if [ "${IsV4}" = "4" -a ${ipmode} -ne ${IPMODE_IPV6_ONLY} ];then
+            Status="`ifconfig ${EthName} 2> /dev/null | grep -i "inet addr:" | cut -f2 -d':' | cut -f1 -d" "`"
+        elif [ ${ipmode} -ne ${IPMODE_IPV4_ONLY} ];then
+            Status="`ifconfig ${EthName} 2> /dev/null | grep -i "inet6 addr:" | cut -f2 -d':' | cut -f1 -d" "`"
+        else
+            Status="StopCheck"
+        fi
+        if test -n "${Status}"; then
+            CheckAgain=0
+        fi
+        if [ ${CheckAgain} -eq 1 ]; then
+          sleep 1
+          RETRY=`expr ${RETRY} - 1`
+        else
+            break
+        fi
+    done
+}
+
+main()
+{
+    local Mode="${1}"
+    local V4="${2}"
+    case ${Mode} in
+    Status )
+        CheckStatus ":V4Status"
+        CheckStatus ":V6Status"
+        ;;
+    Device )
+        case ${V4} in
+        V4 )
+            CheckEthDevice 4
+            ;;
+        V6 )
+            CheckEthDevice 6
+            ;;
+        * )
+            CheckEthDevice 4
+            CheckEthDevice 6
+            ;;
+        esac
+        ;;
+    * )
+        CheckEthDevice 4
+        CheckEthDevice 6
+        CheckStatus ":V4Status"
+        CheckStatus ":V6Status"
+        ;;
+    esac
+}
+
+main $@

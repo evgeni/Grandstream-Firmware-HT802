@@ -1,0 +1,56 @@
+#!/bin/sh
+
+if [ -r /tmp/config/rc.conf ]; then
+	. /tmp/config/rc.conf
+fi
+
+BANNER_FILE="/tmp/config/banner"
+DEV_MODEL="`cat /proc/gxp/dev_info/dev_alias`"
+COPYRIGHT_ENDYEAR="`ls -le /sbin/gs_config | awk '{print $10}'`"
+
+stop() {
+if [ -n "`ps | grep -v 'grep' | grep 'dropbear'`" ]; then
+	killall dropbear 2>/dev/null
+fi
+}
+
+start() {
+if [ "${sshd_disable}" = "0" ]; then
+	if [ "x${sshd_port}" = "x" ]; then
+		sshd_port=22
+	fi
+	if [ -x /usr/sbin/dropbear ]; then
+
+		# prepare banner here
+		echo "Grandstream ${DEV_MODEL} Command Shell Copyright 2006-${COPYRIGHT_ENDYEAR}" > ${BANNER_FILE}
+
+		# must add -F 'Don't fork into background' option,
+		# then fork it in this script by following '&'
+		# otherwise it will cause a high cpu loading while restart by Pvalue script(rcM(10))
+		/usr/sbin/dropbear -j -k -R -p ${sshd_port} -F -b ${BANNER_FILE} &
+	fi
+fi
+}
+
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+start)
+	start
+	;;
+stop)
+	stop
+	;;
+restart)
+	restart
+	;;
+*)
+	echo $"Usage $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+

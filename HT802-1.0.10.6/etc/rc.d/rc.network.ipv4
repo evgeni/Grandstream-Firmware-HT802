@@ -1,0 +1,235 @@
+#!/bin/sh
+
+#nvram set :pppoe_display=1
+
+if [ -r /tmp/config/rc.conf -a "$conf_sourced" != "1" ]; then
+	. /tmp/config/rc.conf
+fi
+
+if [ -r /etc/funcs.sh ]; then
+	. /etc/funcs.sh
+fi
+
+ROUTER_SUPPORT=0
+if [ -e "/proc/gxp/dev_info/hw_features/gs_model" ]; then
+	gs_model=`cat /proc/gxp/dev_info/hw_features/gs_model`
+	if [ "$gs_model" = "HT81X" ];then
+		ROUTER_SUPPORT=1
+	fi
+fi
+
+if [ $ROUTER_SUPPORT -eq 1 ];then
+	WAN_IF="`nvram get wan_if`"
+	: ${WAN_IF:="eth1"}
+	LAN_IF="`nvram get lan_if`"
+	: ${LAN_IF:="eth0"}
+else
+	WAN_IF="`nvram get wan_if`"
+	: ${WAN_IF:="eth0"}
+fi
+
+RESOLV_CONF="/tmp/.resolv4.conf"
+RESOLV_CONF_PREF="/tmp/.resolv4.conf.pref"
+PREFERRED_DNS_NUM=0
+# Bug 88715
+> ${RESOLV_CONF}
+> ${RESOLV_CONF_PREF}
+echo search "`hostname`" >> ${RESOLV_CONF}
+
+ISP_DNS="`nvram get 25800`" #use preferred DNS or ISP's DNS first?
+if [ "${ISP_DNS}x" = "x" -o "${ISP_DNS}" = "0" ]; then  #default - u
+	if [ -n "${wan_preferred_dns1}" -a "${wan_preferred_dns1}" != "..." -a  "${wan_preferred_dns1}" != "0.0.0.0" \
+		-a -n "`nvram get 92`" -a "`nvram get 92`" != "0" ]; then
+		echo nameserver ${wan_preferred_dns1} >> ${RESOLV_CONF_PREF}
+		PREFERRED_DNS_NUM=`expr ${PREFERRED_DNS_NUM} + 1`
+		export PREFERRED_DNS_SERVER=${wan_preferred_dns1}
+	fi
+	if [ -n "${wan_preferred_dns2}" -a "${wan_preferred_dns2}" != "..." -a  "${wan_preferred_dns2}" != "0.0.0.0" \
+		-a -n "`nvram get 5026`" -a "`nvram get 5026`" != "0" ]; then
+		echo nameserver ${wan_preferred_dns2} >> ${RESOLV_CONF_PREF}
+		PREFERRED_DNS_NUM=`expr ${PREFERRED_DNS_NUM} + 1`
+		if [ -z "${PREFERRED_DNS_SERVER}" ]; then
+			export PREFERRED_DNS_SERVER=${wan_preferred_dns2}
+		fi
+	fi
+	if [ -n "${wan_preferred_dns3}" -a "${wan_preferred_dns3}" != "..." -a  "${wan_preferred_dns3}" != "0.0.0.0" \
+		-a -n "`nvram get 5030`" -a "`nvram get 5030`" != "0" ]; then
+		echo nameserver ${wan_preferred_dns3} >> ${RESOLV_CONF_PREF}
+		PREFERRED_DNS_NUM=`expr ${PREFERRED_DNS_NUM} + 1`
+		if [ -z "${PREFERRED_DNS_SERVER}" ]; then
+			export PREFERRED_DNS_SERVER=${wan_preferred_dns3}
+		fi
+	fi
+	if [ -n "${wan_preferred_dns4}" -a "${wan_preferred_dns4}" != "..." -a  "${wan_preferred_dns4}" != "0.0.0.0" \
+		-a -n "`nvram get 5034`" -a "`nvram get 5034`" != "0" ]; then
+		echo nameserver ${wan_preferred_dns4} >> ${RESOLV_CONF_PREF}
+		PREFERRED_DNS_NUM=`expr ${PREFERRED_DNS_NUM} + 1`
+		if [ -z "${PREFERRED_DNS_SERVER}" ]; then
+			export PREFERRED_DNS_SERVER=${wan_preferred_dns4}
+		fi
+	fi
+else
+	if [ -n "${wan_preferred_dns4}" -a "${wan_preferred_dns4}" != "..." -a  "${wan_preferred_dns4}" != "0.0.0.0" \
+		-a -n "`nvram get 5034`" -a "`nvram get 5034`" != "0" ]; then
+		echo nameserver ${wan_preferred_dns4} >> ${RESOLV_CONF_PREF}
+		PREFERRED_DNS_NUM=`expr ${PREFERRED_DNS_NUM} + 1`
+		export PREFERRED_DNS_SERVER=${wan_preferred_dns4}
+	fi
+	if [ -n "${wan_preferred_dns3}" -a "${wan_preferred_dns3}" != "..." -a  "${wan_preferred_dns3}" != "0.0.0.0" \
+		-a -n "`nvram get 5030`" -a "`nvram get 5030`" != "0" ]; then
+		echo nameserver ${wan_preferred_dns3} >> ${RESOLV_CONF_PREF}
+		PREFERRED_DNS_NUM=`expr ${PREFERRED_DNS_NUM} + 1`
+		if [ -z "${PREFERRED_DNS_SERVER}" ]; then
+			export PREFERRED_DNS_SERVER=${wan_preferred_dns3}
+		fi
+	fi
+	if [ -n "${wan_preferred_dns2}" -a "${wan_preferred_dns2}" != "..." -a  "${wan_preferred_dns2}" != "0.0.0.0" \
+		-a -n "`nvram get 5026`" -a "`nvram get 5026`" != "0" ]; then
+		echo nameserver ${wan_preferred_dns2} >> ${RESOLV_CONF_PREF}
+		PREFERRED_DNS_NUM=`expr ${PREFERRED_DNS_NUM} + 1`
+		if [ -z "${PREFERRED_DNS_SERVER}" ]; then
+			export PREFERRED_DNS_SERVER=${wan_preferred_dns2}
+		fi
+	fi
+	if [ -n "${wan_preferred_dns1}" -a "${wan_preferred_dns1}" != "..." -a  "${wan_preferred_dns1}" != "0.0.0.0" \
+		-a -n "`nvram get 92`" -a "`nvram get 92`" != "0" ]; then
+		echo nameserver ${wan_preferred_dns1} >> ${RESOLV_CONF_PREF}
+		PREFERRED_DNS_NUM=`expr ${PREFERRED_DNS_NUM} + 1`
+		if [ -z "${PREFERRED_DNS_SERVER}" ]; then
+	    	export PREFERRED_DNS_SERVER=${wan_preferred_dns1}
+		fi
+	fi
+fi
+if [ ${PREFERRED_DNS_NUM} -le 0 ]; then
+	rm ${RESOLV_CONF_PREF}
+fi
+echo "options rotate" >> ${RESOLV_CONF}
+
+nvram set :211="Disabled"
+
+# if we had root mounted via nfs, do not change network setting on wan port
+if [ ! "`grep nfs /etc/mtab`" ]; then
+	#802.1X support
+	if [ "${dot1x_mode}" = 1 ]; then
+		echo "Enabling 802.1x support (EAP-MD5)...."
+		/sbin/supplicant_cfg.sh /tmp/config/xsupplicant.conf /tmp/config/supplicant.conf
+	elif [ "${dot1x_mode}" = "2" ]; then
+		echo "Enabling 802.1x support (EAP-TLS)...."
+		/sbin/supplicant_cfg.sh /tmp/config/xsupplicant.eap_tls.conf /tmp/config/supplicant.conf
+	elif [ "${dot1x_mode}" = "3" ]; then
+		echo "Enabling 802.1x support (EAP-PEAPv0/MSCHAPv2)...."
+		/sbin/supplicant_cfg.sh /tmp/config/xsupplicant.eap_peapv0_mschapv2.conf /tmp/config/supplicant.conf
+	fi
+	if [ -f /tmp/config/supplicant.conf ]; then
+		/sbin/xsupplicant -i ${WAN_IF} -c /tmp/config/supplicant.conf >/dev/null
+	fi
+
+	#factory mode
+	if [ "x${FACTORYMODE}" = "x1" ]; then
+		wan_ip_option=1
+		nvram set 276=0  #enable ssh
+		nvram set 190=1  #firewall allow http/ssh access
+		nvparse_conf /conf/rc.conf > /tmp/config/rc.conf
+		wan_static_ipaddr=192.168.0.160
+		wan_static_netmask=255.255.255.0
+		wan_static_default_gw=192.168.0.1
+		> ${RESOLV_CONF}
+		echo search "`hostname`" >> ${RESOLV_CONF}
+		echo nameserver ${wan_static_default_gw} >> ${RESOLV_CONF}
+	fi
+
+	case  ${wan_ip_option} in
+	2)
+		nvram set :V4Status="Launching"
+		if [ -r /etc/rc.d/init.d/pppoe ]; then
+			echo "Starting PPPoE Connection ...."
+			nvram unset pppoe_status
+			/etc/rc.d/init.d/pppoe start
+			nvram set :211="Enabled"
+			echo start led_wan_dhcp_ok > /proc/gxp/led_patterns
+		fi
+		/etc/rc.d/rc.service
+		nvram set :V4Status="Launched"
+		;;
+	1)
+		echo "Setting fixed WAN IP Address ...."
+		nvram set :V4Status="Launching"
+		/etc/rc.d/init.d/wan_disconnect
+		/sbin/ifconfig $WAN_IF ${wan_static_ipaddr} netmask ${wan_static_netmask}
+		/sbin/route add default gw ${wan_static_default_gw}
+		
+		# Bug 58759
+		oem_id="`cat /proc/gxp/dev_info/hw_features/oem_id`"
+		if [ "x${FACTORYMODE}" != "x1" ]; then
+			if [ ! -z "$oem_id" -a "$oem_id" != "23" -a "$oem_id" != "26" -a "$oem_id" != "29" ]; then
+				# non-vonage
+				> ${RESOLV_CONF}
+				echo search "`hostname`" >> ${RESOLV_CONF}
+				#Penio Fix for incorrect DNS Server range (Bug 4956)
+				NO_DNS=true
+				
+				# Setting up DNS Server 1
+				if [ -n "`nvram get 21`" -a "`nvram get 21`" != "0" -a "`nvram get 21`" -le "255" -a "`nvram get 22`" -le "255" -a "`nvram get 23`" -le "255" -a "`nvram get 24`" -le "255" ]; then
+					echo "nameserver ${wan_static_dns1}" >> ${RESOLV_CONF}
+					echo "Using DNS-1 server ${wan_static_dns1}"
+					NO_DNS=false
+				fi
+				# Setting up DNS Server 2
+				if [ -n "`nvram get 25`" -a "`nvram get 25`" != "0" -a "`nvram get 25`" -le "255" -a "`nvram get 26`" -le "255" -a "`nvram get 27`" -le "255" -a "`nvram get 28`" -le "255" ]; then
+					echo "nameserver ${wan_static_dns2}" >> ${RESOLV_CONF}
+					echo "Using DNS-2 server ${wan_static_dns2}"
+					NO_DNS=false
+				fi
+				if $NO_DNS; then
+					echo "nameserver ${wan_static_default_gw}" >> ${RESOLV_CONF}
+					echo "WARNING!!! Incorrect DNS-2 server. Defaulting to gateway ip ${wan_static_default_gw}...."
+				fi
+				if [ -z "`cat ${RESOLV_CONF} | grep '208.67.220.220'`" ]; then
+					echo nameserver 208.67.220.220 >> ${RESOLV_CONF}
+				fi
+				if [ -z "`cat ${RESOLV_CONF} | grep '8.8.8.8'`" ]; then
+					echo nameserver 8.8.8.8 >> ${RESOLV_CONF}
+				fi
+			fi
+    	fi
+		#Bug 65674 72320
+		#if [ "x${FACTORYMODE}" = "x1" ]; then
+		#    echo start led_wan_dhcp_ok > /proc/gxp/led_patterns
+		#fi
+		/usr/sbin/merge-hook
+		/etc/rc.d/rc.service
+		nvram set :V4Status="Launched"
+		;;
+	*)
+		if [ -f /usr/share/udhcpc/default.script ]; then
+			echo "Starting DHCP Client ...."
+			/etc/rc.d/init.d/udhcpc start
+		fi
+	;;
+	esac
+else
+	nvram set :V4Status="Launching"
+	# root mounted via NFS...just start services
+	#echo start led_wan_dhcp_ok > /proc/gxp/led_patterns
+	# for NFS support manualy add the dns resolutions
+	/sbin/route add default gw 192.168.254.2
+	echo nameserver 192.168.254.2 >> $RESOLV_CONF
+	echo nameserver 173.254.235.85 >> $RESOLV_CONF
+	echo nameserver 173.254.235.86 >> $RESOLV_CONF
+	/usr/sbin/merge-hook
+	/etc/rc.d/rc.service
+	nvram set :V4Status="Launched"
+fi
+
+#Vonage wants the ARP queries from gs_ata to be at least one minute.
+#This increases the cache life time and hopefully prevent ARP queries from other programs e.g. syslogd to
+#send out ARP queries before one minute.
+echo 60 > /proc/sys/net/ipv4/neigh/${WAN_IF}/base_reachable_time  #default 30
+echo 120 > /proc/sys/net/ipv4/neigh/${WAN_IF}/gc_stale_time       #default 60
+echo 60 > /proc/sys/net/ipv4/neigh/default/base_reachable_time  #default 30
+echo 120 > /proc/sys/net/ipv4/neigh/default/gc_stale_time       #default 60
+echo 60 > /proc/sys/net/ipv4/neigh/default/gc_interval       #default 30
+echo 1 > /proc/sys/net/ipv4/conf/${WAN_IF}/arp_accept             #default 0
+echo 256 > /proc/sys/net/ipv4/neigh/default/gc_thresh1       #default 128
+echo 1024 > /proc/sys/net/ipv4/neigh/default/gc_thresh2       #default 512
+echo 2048 > /proc/sys/net/ipv4/neigh/default/gc_thresh3       #default 1024

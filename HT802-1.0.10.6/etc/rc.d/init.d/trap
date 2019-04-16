@@ -1,0 +1,8 @@
+#!/bin/sh
+
+trap_version=$(nvram get 21899)
+if [ x$trap_version = x3 ];then
+	nvram set :SNMP_trap_1=3
+else
+	nvram set :SNMP_trap_1=1
+fi

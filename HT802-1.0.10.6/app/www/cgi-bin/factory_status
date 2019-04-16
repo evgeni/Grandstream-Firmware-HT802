@@ -1,0 +1,11 @@
+#!/usr/bin/haserl
+<?
+. /app/web/check.sh
+
+factcfg_sec_verify > /dev/null 2>&1
+
+header
+/app/bin/nvparse_weblocked /app/web/factory_status.htm 2> /dev/null
+
+?>
+

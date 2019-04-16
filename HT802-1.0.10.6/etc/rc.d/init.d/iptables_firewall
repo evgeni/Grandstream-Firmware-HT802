@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ -r /tmp/config/rc.conf ]; then
+    . /tmp/config/rc.conf
+fi
+
+# Setup Network Address Translation (NAT)
+/etc/rc.d/rc.iptables
+# Setup Firewall
+/etc/rc.d/rc.firewall
+# TR069 iptables
+/etc/rc.d/init.d/tr069_iptables

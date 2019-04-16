@@ -1,0 +1,56 @@
+#!/bin/sh
+
+if [ -r /tmp/config/rc.conf -a "$conf_sourced" != "1" ]; then
+        . /tmp/config/rc.conf
+fi
+
+# Bug 62436 - HT81X_network_1.0.0.1:After changed IP,user could not access webui
+# Must set up NAT and Firewall before ':netserv_started'
+#set up NAT and Firewall
+if [ -f /etc/rc.d/init.d/iptables_firewall ]; then
+	/etc/rc.d/init.d/iptables_firewall
+fi
+
+if [ "`nvram get netserv_started`" = 1 ]; then
+    exit
+fi
+nvram set :netserv_started=1
+
+#
+# Start telnet server
+#
+#if [ "`nvram get 276`" = "0" -o "x${FACTORYMODE}" == "x1" ]; then
+#    /etc/rc.d/init.d/telnet
+#fi
+
+#if factory mode then the rest is not needed.
+if [ "x${FACTORYMODE}" == "x1" ]; then
+    exit
+fi    
+
+#
+# Start Logging
+#
+/etc/rc.d/init.d/syslog restart
+
+#
+# Core dumping
+#
+if [ -f /etc/rc.d/rc.dump_core ]; then
+    /etc/rc.d/rc.dump_core start
+fi
+
+#
+# Start NTP Client
+#
+if [ -r /etc/rc.d/init.d/ntpc ]; then
+    /etc/rc.d/init.d/ntpc restart &
+fi
+
+
+#
+# Start SSHD
+#
+if [ -r /etc/rc.d/init.d/sshd ];then
+	/etc/rc.d/init.d/sshd start
+fi

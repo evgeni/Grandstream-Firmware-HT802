@@ -1,0 +1,302 @@
+### Basic Settings
+
+# 1.End User Password = london2012
+196=london2012
+
+# 2.Timezone = GMT + 2:00
+64=TZP-2
+
+# 3.IP Address: = Dynamically assigned via DHCP
+8=0
+
+# 4.Enable LAN DHCP = No
+5001=0
+
+# 5.LAN DHCP Base IP = 192.168.20.12
+111=192.168.20.12
+
+
+### Advanced settings
+
+# 1.Admin Password = london2012
+2=london2012
+
+# 2.VLAN Tag = 0
+51=0
+
+# Firmware Server Path = Empty
+192=
+
+# Config Server Path = Empty
+237=
+
+# 3.Remote management settings must be as follows:
+# ACS URL = "http://tsm.telkomadsl.co.za:1111/ACS-INTF"
+4503=http://tsm.telkomadsl.co.za:1111/ACS-INTF
+
+# ACS URL username = "OUI"-"ProductClass"-"Serialnumber". 
+# Note: The serial number is the model MAC address in lower case. 
+# (The OUI is the Object Unit Identifier and consist of the first 6 characters of the MAC address. 
+# This is unique per manufacturer. The Product class can be product name)
+# ACS URL password = "Serialnumber"
+# 4504 and 4505 are set by another script "process"
+
+# Periodic Inform = enabled
+4506=1
+
+# Periodic Inform Interval = 86400 seconds
+4507=86400
+
+# Connection Request Username and Password = NONE, keep these fields clear.
+4511=
+4512=
+
+# CURL (Connection URL) port to be used = 7676
+4518=7676
+
+# 4.Include the attached Verisign Root CA certificate in the firmware for TR-069.
+8220=-----BEGIN CERTIFICATE-----
+MIICPDCCAaUCEHC65B0Q2Sk0tjjKewPMur8wDQYJKoZIhvcNAQECBQAwXzELMAkG
+A1UEBhMCVVMxFzAVBgNVBAoTDlZlcmlTaWduLCBJbmMuMTcwNQYDVQQLEy5DbGFz
+cyAzIFB1YmxpYyBQcmltYXJ5IENlcnRpZmljYXRpb24gQXV0aG9yaXR5MB4XDTk2
+MDEyOTAwMDAwMFoXDTI4MDgwMTIzNTk1OVowXzELMAkGA1UEBhMCVVMxFzAVBgNV
+BAoTDlZlcmlTaWduLCBJbmMuMTcwNQYDVQQLEy5DbGFzcyAzIFB1YmxpYyBQcmlt
+YXJ5IENlcnRpZmljYXRpb24gQXV0aG9yaXR5MIGfMA0GCSqGSIb3DQEBAQUAA4GN
+ADCBiQKBgQDJXFme8huKARS0EN8EQNvjV69qRUCPhAwL0TPZ2RHP7gJYHyX3KqhE
+BarsAx94f56TuZoAqiN91qyFomNFx3InzPRMxnVx0jnvT0Lwdd8KkMaOIG+YD/is
+I19wKTakyYbnsZogy1Olhec9vn2a/iRFM9x2Fe0PonFkTGUugWhFpwIDAQABMA0G
+CSqGSIb3DQEBAgUAA4GBALtMEivPLCYATxQT3ab7/AoRhIzzKBxnki98tsX63/Do
+lbwdj2wsqFHMc9ikwFPwTtYmwHYBV4GSXiHx0bH/59AhWM1pF+NEHJwZRDmJXNyc
+AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
+-----END CERTIFICATE-----
+
+# 6.System ring cadence = c=400/2000-400/200;
+4040=c=400/2000-400/200;
+
+# 7.NTP Server = tsm.telkomadsl.co.za
+30=tsm.telkomadsl.co.za
+
+# NTP update interval = 1440 minutes
+5005=1440
+
+# Disable TR111
+8222=0
+
+# Disable TR143
+8223=0
+
+### FXS port 1 and 2 (BOTH)
+
+# 1.Account Active = No
+271=0
+401=0
+
+# 2.Primary SIP server = Leave blank
+47=
+747=
+
+# 3.Failover SIP server = Leave blank
+967=
+987=
+
+# 4.Outbound Proxy = Leave blank
+48=
+748=
+
+# 5.DNS Mode = NAPTR/SRV
+103=2
+702=2
+
+# 6.SIP User ID = Leave blank
+35=
+735=
+
+# 7.Authenticate ID = Leave blank
+36=
+736=
+
+# 8.Authenticate password = Leave blank
+34=
+734=
+
+# 9.SIP registration = Yes
+31=1
+731=1
+
+# 10.Unregister on Reboot = Yes
+81=1
+752=1
+
+# 11.Outgoing call without registration = Yes
+109=1
+813=1
+
+# 12.Disable Bellcore style 3-way conference = No
+4830=0
+4831=0
+
+# 13.Support SIP instance ID = Yes
+288=1
+489=1
+
+# 14.SIP T1 Timeout = 8 sec
+209=800
+440=800
+
+# 15.SIP T2 Interval = 16 sec
+250=1600
+441=1600
+
+# 16.DTMF payload type = 101
+79=101
+779=101
+
+# 17.Preferred DTMF method:
+# a.Priority 1 = RFC2833
+# b.Priority 2 = In-audio
+# c.Priority 3 = In-audio
+850=101
+851=100
+852=100
+860=101
+861=100
+862=100
+
+# 18.Send hook flash event = No
+74=0
+774=0
+
+# 19.Enable call features = No
+191=0
+751=0
+
+# 20.Disable call waiting = Yes
+91=1
+791=1
+
+# 21.Disable call waiting caller ID = Yes
+714=1
+823=1
+
+# 22.Disable call waiting tone = Yes
+186=1
+817=1
+
+# 23.Disable visual MWI = No
+855=0
+869=0
+
+# 24.Early dial = No
+29=0
+729=0
+
+# Use # as Dial Key = No
+72=0
+772=0
+
+# 25.Dial plan = {[x*#]+}
+4200={[x*#]+}
+4201={[x*#]+}
+
+# 26.Send anonymous = No
+65=0
+765=0
+
+# 27.Special feature = TELEKOM SA (for CLIR)
+198=120
+767=120
+
+# 28.Session expiration = 180
+260=180
+434=180
+
+# 29.Min-SE = 90
+261=90
+427=90
+
+# 30.Send re-invite after fax = Yes
+4367=1
+4368=1
+
+# 31.Enable silence detection for fax disconnect = Yes
+4406=1
+4407=1
+
+# 32.Enable 100rel = Yes
+272=1
+435=1
+
+# 33.Preferred vocoder
+# a.Choice 1 = G729
+# b.Choice 2 = PCMA
+# c.Choice 3 to 8 = G729
+57=18
+58=8
+59=18
+60=18
+61=18
+62=18
+46=18
+98=18
+
+757=18
+758=8
+759=18
+760=18
+761=18
+762=18
+814=18
+815=18
+
+# 34.Voice frames per TX = 2
+37=2
+727=2
+
+# 35.VAD = No
+50=0
+750=0
+
+# 36.Fax mode = T.38 (auto detect)
+228=0
+710=0
+
+# 37.Fax tone detection mode = Callee
+894=0
+895=0
+
+# 38.Jitter buffer type = Adaptive
+133=1
+831=1
+
+# 39.Jitter buffer length = Medium
+132=1
+832=1
+
+# 40.SLIC setting = USA
+854=0
+864=0
+
+# 41.Caller ID scheme = ETSI-FSK during ringing
+853=1
+863=1
+
+# 42.Loop current disconnect duration = 200
+856=200
+857=200
+
+# 43.Hook flash timing
+# a.Minimum = 50
+# b.Maximum = 130
+251=50
+252=130
+
+811=50
+812=130
+
+# 44.Disable line echo canceller = No
+824=0
+825=0
+
+# Register Before Expiration = 1 second
+2330=1
+2430=1

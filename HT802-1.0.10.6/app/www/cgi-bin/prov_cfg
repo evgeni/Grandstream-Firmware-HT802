@@ -1,0 +1,84 @@
+#!/bin/sh
+
+. /app/web/check.sh
+_session_id="`nvram get session_id`"
+_session_token="`nvram get session_token`"
+_timestamp="`nvram get timestamp`"
+_scriptname="`basename ${SCRIPT_NAME}`"
+_URL_session_token="`echo ${QUERY_STRING} | cut -d'=' -f2`"
+_session_user="`nvram get session_user`"
+
+check_lang
+
+check_session_token()
+{
+    # Only POST with valid token can update the configuration
+    if neq "${REQUEST_METHOD}" "POST" ||  empty "${_URL_session_token}" || neq "${_URL_session_token}" "${_session_token}" || check_session_token_time; then
+        cat < "${1}" > /dev/null
+        header
+        if equal "admin" "${_session_user}"; then
+            /app/bin/nvparse_weblocked /app/web/adminlogin.htm 2> /dev/null
+        else
+            /app/bin/nvparse_weblocked /app/web/login.htm 2> /dev/null
+        fi
+        exit
+    fi
+    generate_session_token
+}
+
+if equal "locked" "${_session_user}"; then
+    cat < "${1}" > /dev/null
+    header
+    /app/bin/nvparse_weblocked /app/web/loginlocked.htm 2> /dev/null
+elif empty "${_session_id}" || [ neq "${_scriptname}" "upload_cfg" && neq "${_scriptname}" "restore_cfg" ] || neq "admin" "${_session_user}"; then
+    cat < "${1}" > /dev/null
+    nvram unset session_id
+    nvram unset timestamp
+    nvram unset session_user
+    nvram unset previous_page
+    header
+    /app/bin/nvparse_weblocked /app/web/login.htm 2> /dev/null
+elif check_timestamp "${_timestamp}" ;then
+    cat < "${1}" > /dev/null
+    nvram unset session_id
+    nvram unset timestamp
+    nvram unset session_user
+    nvram unset previous_page
+    header
+    /app/bin/nvparse_weblocked /app/web/loginout.htm 2> /dev/null
+else 
+    if [ -z $FILENAME ]; then
+        cat < "${1}" > /dev/null
+        header
+        /app/bin/nvparse_weblocked /app/web/cfg_page.htm 2> /dev/null
+    else
+        check_session_token
+        get_system_status
+        header
+        if [ -z "`nvram get cur_call_cnt`" -o "`nvram get cur_call_cnt`" = "0" ]; then
+            nvram set :relogin_time="60"
+            /app/bin/nvparse_weblocked /app/web/pr_rs.htm 2> /dev/null
+            nvram unset session_id
+            nvram unset timestamp
+            nvram unset session_user
+            cat "${1}" > /tmp/local_cfg_file
+            # Bug 94446 needs to decrypt the cfg file if it is the restore cfg
+            if equal "${_scriptname}" "restore_cfg" || equal "${_scriptname}" "restore_cfg_page"; then
+               corefile_dec /tmp/local_cfg_file
+            fi
+            /bin/new_provision --filecfg file:///tmp/local_cfg_file --noreboot > /dev/null 2>&1
+            if [ -s /tmp/local_cfg_file ]; then
+                rm /tmp/local_cfg_file
+            fi
+            if [ -s /tmp/cfg.xml ]; then
+                 rm /tmp/cfg.xml 
+            fi
+            if [ "`nvram get reboot_req`" = "1" ]; then
+                reboot
+            fi
+        else
+            cat < "${1}" > /dev/null
+            /app/bin/nvparse_weblocked /app/web/cfg_page.htm 2> /dev/null
+        fi
+    fi
+fi

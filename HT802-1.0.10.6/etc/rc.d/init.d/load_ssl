@@ -1,0 +1,16 @@
+#!/bin/sh
+
+. /etc/init.d/functions
+
+if get_custom_cert; then
+    nvram get 8472 | tr -d '\r' > /tmp/gxe50xx.pem
+# Setup Security
+elif [ -f /proc/gxp/dev_info/security/private_key -a -f /proc/gxp/dev_info/security/certificate ]; then
+    if [ -n "`cat /proc/gxp/dev_info/security/private_key`" -a -n "`cat /proc/gxp/dev_info/security/certificate`" ]; then
+        echo "Loading custom certificate and private key"
+        cat /proc/gxp/dev_info/security/private_key > /tmp/gxe50xx.pem
+        cat /proc/gxp/dev_info/security/certificate >> /tmp/gxe50xx.pem
+    else
+        cat /etc/default.pem > /tmp/gxe50xx.pem
+    fi
+fi

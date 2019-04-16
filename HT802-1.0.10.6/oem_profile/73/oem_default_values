@@ -1,0 +1,155 @@
+# Telefonica Brazil
+1409=1
+4180=VIVO
+4181=VIVO
+4182=VIVO
+4183=VIVO
+4200={ x.T|*x.T|#x.T|*x.#|#x.#|*xx*x.#|*xx*xxxx*xx#|*xx*xxxx*xxxx*xxxx#|#xx*xxxx# }
+4201={ x.T|*x.T|#x.T|*x.#|#x.#|*xx*x.#|*xx*xxxx*xx#|*xx*xxxx*xxxx*xxxx#|#xx*xxxx# }
+4503=http://acs.telesp.net.br:7005/cwmpWeb/WGCPEMgt
+4504=acsclient
+4505=telefonica
+4506=1
+4507=68400
+4511=userid
+4512=
+
+4518=7547
+
+# Telnet - No
+28120=0
+
+# Disable SSH - Yes
+276=1
+
+# More defaults for Telefonica Brazil
+# Firmware Server
+192=
+
+# Config Server
+237=
+
+# Automatic Upgrade - No
+194=0
+
+# Randomized Automatic Upgrade - No
+8458=0 
+
+# Always Skip the Firmware Check
+238=2
+
+# 3CX Auto Provision - No
+1414=0
+
+# Ring Timeout - no timeout
+185=0
+
+# Hook Flash Timing
+# minimum
+251=140
+# maximum
+252=500
+
+# On Hook Timing
+833=500
+
+# Dial Tone
+4000=f1=425@-17,c=0/0;
+
+# Ringback Tone
+4001=f1=425@-17,c=1000/4000;
+
+# Busy Tone
+4002=f1=425@-21,c=250/250;
+
+# Reorder Tone
+4003=f1=425@-21,c=250/250;
+
+# Confirmation Tone
+4004=f1=425@-11,c=100/100-100/100-100/100;
+
+# Call Waiting tone
+4005=f1=425@-13,c=60/250-60/9000;
+
+# Prompt tone
+4041=f1=425@-17,c=100/100;
+
+##  Profile 1 Settings
+# Profile Active - Yes
+271=1
+
+# Preferred Vocoder
+# Choice 1 PCMA
+57=8
+
+# Choice 2 PCMA
+58=8
+
+# Choice 3 PCMA
+59=8
+
+# Choice 4 PCMA
+60=8
+
+# Choice 5 G.729
+61=18
+
+# Choice 6 G.729
+62=18
+
+# Choice 7 G.729
+46=18
+
+# Enable 100rel - Yes
+272=1
+
+# DTMF Payload Type
+79=100
+
+# Caller ID Scheme - DTMF-FSK Brazil
+853=15
+
+##  Profile 2 Settings
+# Preferred Vocoder
+# Choice 1 PCMA 
+757=8
+
+# Choice 2 PCMA
+758=8
+
+# Choice 3 PCMA
+759=8
+
+# Choice 4 PCMA
+760=8
+
+# Choice 5 G.729 
+761=18
+
+# Choice 6 G.729 
+762=18
+
+# Choice 7 G.729 
+814=18
+
+# Enable 100rel - Yes
+435=1
+
+# DTMF Payload Type
+779=100
+
+##  FXS Ports Settings
+# FXS Port 1 
+# Enable Port - No
+4595=0
+
+# FXS Port 2
+# Enable Port - No
+4596=0
+
+# Disable FXS port 3,4
+4597=0
+4598=0
+
+# TR069 white list
+28142=201.93.48.48/28 201.95.254.0/28 201.93.48.64/28 201.95.254.37/32 200.207.223.136/29 200.207.223.128/29 200.207.192.3/32

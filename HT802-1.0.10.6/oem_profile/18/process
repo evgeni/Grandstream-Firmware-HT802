@@ -1,0 +1,18 @@
+#!/bin/sh
+
+if [ -n "`nvram get 4504`" -a -n "`nvram get 4505`" ]; then
+	exit
+fi	
+
+SERIAL_NO="$(cat /proc/gxp/dev_info/dev_mac |tr -d ':'|tr [A-F] [a-f])"
+PRODUCT_NAME="$(cat /proc/gxp/dev_info/dev_alias)"
+if [ -z "`nvram get 4504`" ]; then
+    echo "Reset ACS UserName"
+	OUI="$(cat /proc/gxp/dev_info/dev_mac |cut -d':' -f1-3|tr -d ':')"
+    nvram set 4504=${OUI}-${PRODUCT_NAME}-${SERIAL_NO}
+fi
+if [ -z "`nvram get 4505`" ]; then
+    echo "Reset ACS Password"
+    nvram set 4505=${SERIAL_NO}
+fi
+nvram commit

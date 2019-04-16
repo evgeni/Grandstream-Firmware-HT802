@@ -1,0 +1,138 @@
+#!/bin/sh
+
+if [ -r /tmp/config/rc.conf ]; then
+    . /tmp/config/rc.conf
+fi
+
+RADIUS_CONF_PATH="/tmp/config/radius"
+BASE_CONF_PATH="/etc/radius"
+RADIUS_CONF="${RADIUS_CONF_PATH}/radiusclient.conf"
+SERVER_CONF="${RADIUS_CONF_PATH}/servers"
+DICT_CONF="${RADIUS_CONF_PATH}/dictionary"
+BASE_RADIUS_CONF="${BASE_CONF_PATH}/radiusclient.conf"
+BASE_SERVER_CONF="${BASE_CONF_PATH}/servers"
+BASE_DICT_CONF="${BASE_CONF_PATH}/dictionary"
+
+prepare_server_conf()
+{
+	[ ! -d "${RADIUS_CONF_PATH}" ] && mkdir -p "${RADIUS_CONF_PATH}"
+	[ ! -e "${RADIUS_CONF}" ] && cp "${BASE_RADIUS_CONF}" "${RADIUS_CONF}"
+        [ ! -e "${SERVER_CONF}" ] && cp "${BASE_SERVER_CONF}" "${SERVER_CONF}"
+        [ ! -e "${DICT_CONF}" ] && cp "${BASE_DICT_CONF}" "${DICT_CONF}"
+}
+
+update_server_conf()
+{
+	SERVERIP="${radius_web_server}"
+	SERVERPORT="${radius_web_server_port}"
+	SHAREDSECRET="${radius_web_secret}"
+	VENDORID="${radius_web_vendor}"
+	ACCESSLEVEL="${radius_web_access_level}"
+	[ -z "${SERVERPORT}" ] && SERVERPORT=1812
+	[ -z "${VENDORID}" ] && VENDOR=42397
+	if [ -e "${RADIUS_CONF}" -a -n "${SERVERIP}" ];then
+		sed -i "s/^authserver.*/authserver    ${SERVERIP}:${SERVERPORT}/g" ${RADIUS_CONF}
+		sed -i "s/^acctserver.*/acctserver    ${SERVERIP}:${SERVERPORT}/g" ${RADIUS_CONF}
+	else
+		return 1
+	fi
+	if [ -e "${SERVER_CONF}" -a -n "${SERVERIP}" -a -n "${SHAREDSECRET}" ];then
+		# we have only one server here
+		echo "${SERVERIP}    ${SHAREDSECRET}" > ${SERVER_CONF}
+	else
+		return 1
+	fi
+	if [ -e "${DICT_CONF}" ]; then
+		sed -i "s/^VENDOR.*/VENDOR    Grandstream    ${VENDORID}/g" ${DICT_CONF}
+		[ -n "${ACCESSLEVEL}" ] && sed -i "s/^ATTRIBUTE.*.Grandstream$/ATTRIBUTE    ACL-Auth-Level    ${ACCESSLEVEL}    integer    Grandstream/g" ${DICT_CONF}
+	else
+		return 1
+	fi
+	return 0
+}
+
+remove_server_conf()
+{
+	[ -e "${RADIUS_CONF}" ] && rm "${RADIUS_CONF}"
+	[ -e "${SERVER_CONF}" ] && rm "${SERVER_CONF}"
+	[ -e "${DICT_CONF}" ] && rm "${DICT_CONF}"
+}
+
+#
+# Auth Result:
+# --- Disabled
+# --- Timeout (server or network down)
+# --- Rejected
+# --- Authorized (parse attribute pairs)
+# --- UnknownLevel ( authorized but level not in response )
+# --- Invalid (radius configuration failed)
+# --- Error (something strange occurred)
+#
+startauth()
+{
+	local USERNAME="${1}"
+	local PASSWORD="${2}"
+	ENABLED="${radius_web_enable}"
+
+	if [ -z "${ENABLED}" -o ${ENABLED} -eq 0 ];then
+		echo "Disabled"
+		nvram unset :session_user
+		return 0
+	fi
+	[ -n "${USERNAME}" ] && nvram set username="${USERNAME}"
+	if [ -x /usr/bin/radiusclient ]; then
+		prepare_server_conf
+		update_server_conf
+		if [ $? -ne 0 ]; then
+			echo "Invalid"
+			nvram unset :session_user
+			remove_server_conf
+			return 0
+		fi
+		RESULT="`radiusclient -f ${RADIUS_CONF} User-Name="${USERNAME}" Password="${PASSWORD}"`"
+		TIMEOUT="RESULT:Timeout"
+		REJECT="RESULT:Rejected"
+		ACCEPT="RESULT:Authorized"
+		ACL="ACL-Auth-Level"
+		TIMEOUTRES="`echo "${RESULT}" | grep ${TIMEOUT}`"
+		REJECTRES="`echo "${RESULT}" | grep ${REJECT}`"
+		ACCEPTRES="`echo "${RESULT}" | grep ${ACCEPT}`"
+		if [ -n "${TIMEOUTRES}" ];then
+			echo "Timeout"
+			nvram unset :session_user
+		elif [ -n "${REJECTRES}" ];then
+			echo "Rejected"
+			nvram unset :session_user
+		elif [ -n "${ACCEPTRES}" ];then
+			#Parse attribute pairs here
+			AUTHLEVEL="`echo "${RESULT}" | grep ${ACL} | sed -n 1p | cut -d"'" -f2`"
+			case "${AUTHLEVEL}" in
+				ACL-Auth-UserLevel )
+					nvram set :session_user="viewer"
+					echo "Authorized"
+					;;
+				ACL-Auth-AdminLevel )
+					nvram set :session_user="user"
+					echo "Authorized"
+					;;
+				ACL-Auth-SecurityAdminLevel )
+					nvram set :session_user="admin"
+					echo "Authorized"
+					;;
+				"" | * )
+					nvram unset :session_user
+					echo "UnknownLevel"
+					;;
+			esac
+		else
+			nvram unset :session_user
+			echo "Error"
+		fi
+	else
+		nvram unset :session_user
+		echo "Error"
+	fi
+	remove_server_conf
+}
+
+startauth "${1}" "${2}"

@@ -1,0 +1,657 @@
+<html>
+<head>
+<title>Grandstream Device Configuration</title>
+<script src="../scripts/jquery-min.js" type="text/javascript"></script>
+<script src="../scripts/jquery.validate.min.js" type="text/javascript"></script>
+<style type="text/css">
+<!--
+.l{  font-family: Tahoma; font-size: 10pt; color: #000000; }
+a.l:Hover{  font-family: Tahoma; font-size: 10pt; color: #ffffff; }
+-->
+</style>
+<script>
+function checkPassword() {
+    var pass1 = document.getElementById("pass1");
+    var pass2 = document.getElementById("pass2");
+    var passViewer1 = document.getElementById("passViewer1");
+    var passViewer2 = document.getElementById("passViewer2");
+    if ( pass1.value != pass2.value )
+    {
+        pass1.style.borderBottomColor = "#da4336";
+        pass2.style.borderBottomColor = "#da4336";
+        document.getElementById("hint").style.display="table-row";
+        pass1.scrollIntoView();
+        return false;
+    }
+    else if ( passViewer1.value != passViewer2.value )
+    {
+        passViewer1.style.borderBottomColor = "#da4336";
+        passViewer2.style.borderBottomColor = "#da4336";
+        document.getElementById("hintViewer").style.display="table-row";
+        passViewer1.scrollIntoView();
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+</script>
+</head>
+<body bgcolor="#CCCCCC">
+<form name=basic_form action="update" onsubmit="return checkPassword()" method="post" style=margin-bottom:0 autocomplete="off">
+<input name="session_token" type=hidden value="<% session_token %>">
+<table width="870" border="1" align="center" cellpadding="0" cellspacing="0" bordercolor="#336699">
+<tr><td valign="top"><table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+<tr><td height="48" valign="middle" bgcolor="#F3C47C" class="l" align="center"><strong><font color="#336699" size="3"><b>Grandstream Device Configuration</b></font></strong></td>
+</tr><tr><td height="20" valign="top" background="/backline.gif" bgcolor="#F3C47C" align="center">
+<table width="60%" cellpadding="0" cellspacing="0"><tr>
+<td height="16" bgcolor="#999999" align="center"><a href="index" class="l"><b>STATUS</b></a></td>
+<td bgcolor="#336699" align="center" class="l"><b>BASIC SETTINGS</b></td>
+<td bgcolor="#999999" align="center"><a href="config" class="l"><b>ADVANCED SETTINGS</b></a></td>
+<script type="text/javascript">
+    var model = "<% 89 %>";
+    if ( model == "HT801" )
+    {
+        document.write("<td bgcolor=\"#999999\" align=\"center\"><a href=\"config_a1\" class=\"l\"><b>FXS PORT</b></a></td>");
+    }
+    else if ( model == "HT802" )
+    {
+       document.write("<td bgcolor=\"#999999\" align=\"center\"><a href=\"config_a1\" class=\"l\"><b>FXS PORT1</b></a></td>");
+       document.write("<td bgcolor=\"#999999\" align=\"center\"><a href=\"config_a2\" class=\"l\"><b>FXS PORT2</b></a></td>");
+    }
+</script>
+                </tr>
+              </table>
+            </td>
+        </tr>
+<!-- <% web_update 0 --> %>
+		<tr bgcolor="#FFFFCC">
+		 <td align=center><hr color="#000000" noshade><b><p style="color:#ff0000">Configuration changed. Click Apply to save settings.</p></b><hr color="#000000" noshade></td>
+		</tr>
+<% web_update 0 <!-- %> -->
+        <tr bgcolor="#FFFFCC">
+          <td align=right valign=top> <table  align="top" width=100% border=0 cellspacing=1 cellpadding=2>
+              <tr>
+                <td align=right><b>New End User Password: </b></td>
+                <td>&nbsp; <input id="pass1" type="password" name="P196" maxlength=30 size=30 autocomplete="new-password" readonly onfocus="javascript:this.removeAttribute('readonly');this.style.borderColor='initial';this.select();">
+                  (purposely not displayed for security protection) </td>
+              </tr>
+              <tr>
+                <td align=right><b>Confirm End User Password: </b></td>
+                <td>&nbsp; <input id="pass2" type="password" maxlength=30 size=30 autocomplete="new-password" readonly onfocus="javascript:this.removeAttribute('readonly');this.style.borderColor='initial';this.select();">
+                </td>
+              </tr>
+              <tr id="hint" style="display:none">
+                <td align=right><b></b></td>
+                <td style="color:#da4336"><b>&nbsp; Passwords don't match</b>
+                </td>
+              </tr>
+
+              <tr>
+                <td colspan=2>&nbsp;</td>
+              </tr>
+
+              <tr>
+                <td align=right><b>New Viewer Password: </b></td>
+                <td>&nbsp; <input id="passViewer1" type="password" name="P28113" maxlength=30 size=30 autocomplete="new-password" readonly onfocus="javascript:this.removeAttribute('readonly');this.style.borderColor='initial';this.select();">
+                  (purposely not displayed for security protection) </td>
+              </tr>
+              <tr>
+                <td align=right><b>Confirm Viewer Password: </b></td>
+                <td>&nbsp; <input id="passViewer2" type="password" maxlength=30 size=30 autocomplete="new-password" readonly onfocus="javascript:this.removeAttribute('readonly');this.style.borderColor='initial';this.select();">
+                </td>
+              </tr>
+              <tr id="hintViewer" style="display:none">
+                <td align=right><b></b></td>
+                <td style="color:#da4336"><b>&nbsp; Passwords don't match</b>
+                </td>
+              </tr>
+
+              <tr>
+                <td colspan=2>&nbsp;</td>
+              </tr>
+              <tr>
+                <td align=left colspan=2><font color="#DF46"><i><b>Web/SSH Access: </b></i></font></td>
+              </tr>
+
+              <tr>
+                <td align=right><i>Web Session Timeout: </i></td>
+                <td>&nbsp; <input type=text name="P28116" value="<% 28116 %>" maxlength=5 size=7>
+                    (1-60, default 10 minutes.)</td>
+              </tr>
+              <tr>
+                <td align=right><i>Web Access Attempt Limit: </i></td>
+                <td>&nbsp; <input type=text name="P28117" value="<% 28117 %>" maxlength=5 size=7>
+                    (1-10, default 5.)</td>
+              </tr>
+              <tr>
+                <td align=right><i>Web Lockout Duration: </i></td>
+                <td>&nbsp; <input type=text name="P1683" value="<% 1683 %>" maxlength=5 size=7>
+                    (0-60, default 15 minutes.)</td>
+              </tr>
+
+              <tr>
+                <td colspan=2>&nbsp;</td>
+              </tr>
+
+              <tr>
+                <td align=right><i>Web Access Mode: </i></td>
+                <td>&nbsp; <input type=radio name="P1650" value=0 <% 1650 0 checked %>>HTTPS &nbsp;&nbsp; &nbsp; <input type=radio name="P1650" value=1 <% 1650 1 checked %>>HTTP</td>
+              </tr>
+              <tr>
+                <td align=right><i>HTTP Web Port: </i></td>
+                <td>&nbsp; <input type=text name="P901" value="<% 901 %>" maxlength=5 size=7>
+                  (default is 80) </td>
+              </tr>
+              <tr>
+                <td align=right><i>HTTPS Web Port: </i></td>
+                <td>&nbsp; <input type=text name="P27010" value="<% 27010 %>" maxlength=5 size=7>
+                  (default is 443) </td>
+              </tr>
+              <tr>
+                <td align=right><i>Disable SSH: </i></td>
+                <td>&nbsp; <input type=radio name="P276" value=0 <% 276 0 checked %>>
+                  No &nbsp;&nbsp; &nbsp; <input type=radio name="P276" value=1 <% 276 1 checked %>>
+                  Yes</td>
+              </tr>
+              <tr>
+                <td align=right><i>SSH Port: </i></td>
+                <td>&nbsp; <input type=text name="P27006" value="<% 27006 %>" maxlength=5 size=7>
+                  (default is 22. Cannot be the same as Telnet Port.) </td>
+              </tr>
+              <tr>
+                <td align=right><i>Disable Telnet: </i></td>
+                <td>&nbsp; <input type=radio name="P28120" value=0 <% 28120 0 checked %>>
+                  No &nbsp;&nbsp; &nbsp; <input type=radio name="P28120" value=1 <% 28120 1 checked %>>
+                  Yes</td>
+              </tr>
+              <tr>
+                <td align=right><i>Telnet Port: </i></td>
+                <td>&nbsp; <input type=text name="P28128" value="<% 28128 %>" maxlength=5 size=7>
+                  (default is 23. Cannot be the same as SSH Port.) </td>
+              </tr>
+              <tr>
+                <td align=right><i>White List for WAN Side: </i></td>
+                <td>&nbsp; <textarea name="P20701" rows=3 cols=51><% 20701 %></textarea></td>
+              </tr>
+              <tr>
+                <td align=right><i>Black List for WAN Side: </i></td>
+                <td>&nbsp; <textarea name="P20702" rows=3 cols=51><% 20702 %></textarea></td>
+              </tr>
+
+              <tr>
+                <td colspan=2>&nbsp;</td>
+              </tr>
+<!--
+              <tr>
+                <td align=right><b>HTTP Access: </b></td>
+                <td>&nbsp; <input type=radio name="P190" value=0 <% 190 0 checked %>>No &nbsp;&nbsp; &nbsp; <input type=radio name="P190" value=1 <% 190 1 checked %>>Yes</td>
+              </tr>
+-->
+              <tr>
+                <td align=right><b>Internet Protocol:</b></td>
+                <td>&nbsp; <input type=radio name="P1415" value=2 <% 1415 2 checked %>>
+                  IPv4 Only&nbsp;&nbsp; &nbsp; <input type=radio name="P1415" value=3 <% 1415 3 checked %>>
+                  IPv6 Only&nbsp;&nbsp; &nbsp; <input type=radio name="P1415" value=0 <% 1415 0 checked %>>
+                  Both, prefer IPv4&nbsp;&nbsp; &nbsp; <input type=radio name="P1415" value=1 <% 1415 1 checked %>>
+                  Both, prefer IPv6</td>
+              </tr>
+              <tr>
+                <td align=right valign=top><b>IPv4 Address: </b></td>
+                <td>
+                 <table width="95%" border=0 cellspacing=1 cellpadding=1>
+                  <tr>
+                   <td>
+                    <table width="100%" border=0 cellspacing=1 cellpadding=1>
+                     <tr>
+                      <td><input TYPE="radio" NAME="P8" VALUE=0 <% 8 0 checked %>>
+                              dynamically assigned via DHCP
+                              <br>
+                       <table width="100%">
+                        <tr>
+                         <td width="6%">&nbsp;</td>
+                         <td width="27%">DHCP hostname:</td>
+                         <td colspan=3><input type=text name="P146" value="<% 146                                                         %>" maxlength=32 size=30> (optional)</td>
+                        </tr>
+                        <tr>
+                         <td>&nbsp;</td>
+                         <td>DHCP vendor class ID:</td>
+                         <td><input type=text name="P148" value="<% 148                                                         %>" maxlength=32 size=30> (optional)</td>
+                        </tr>
+                       </table>
+                      </td>
+                     </tr>
+                     <tr>
+                      <td><input TYPE="radio" NAME="P8" VALUE=2 <% 8 2 checked %>>
+                              use PPPoE
+                            <br>
+                       <table width=100%>
+                        <tr>
+                         <td width="6%">&nbsp;</td>
+                         <td width="27%">PPPoE account ID:</td>
+                         <td><input type=text name="P82" value="<% 82                                                          %>" maxlength=64 size=30></td>
+                        </tr>
+                        <tr>
+                         <td>&nbsp;</td>
+                         <td>PPPoE password:</td>
+                         <td><input type="password" name="P83" value="<% 83                         %>" maxlength=32 size=30></td>
+                        </tr>
+                        <tr>
+                         <td>&nbsp;</td>
+                         <td>PPPoE Service Name:</td>
+                         <td><input type=text name="P269" value="<% 269                                                          %>" maxlength=64 size=30></td>
+                        </tr>
+                       </table>
+					   <table>
+					    <tr>
+						 <td>
+						  <table>
+						   <tr>
+						    <td>
+                              &nbsp;&nbsp;1st Preferred DNS server: &nbsp;
+							</td>
+							<td>
+                              <input type=text name="P92" value="<% 92 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P93" value="<% 93 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P94" value="<% 94 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P95" value="<% 95 %>" maxlength=3 size=3>
+							</td>
+						   </tr>
+					       <tr>
+						    <td>
+                              &nbsp;&nbsp;2nd Preferred DNS server: &nbsp;
+							</td>
+							<td>
+                              <input type=text name="P5026" value="<% 5026 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P5027" value="<% 5027 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P5028" value="<% 5028 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P5029" value="<% 5029 %>" maxlength=3 size=3>
+							</td>
+						   </tr>
+					       <tr>
+						    <td>
+                              &nbsp;&nbsp;3rd Preferred DNS server: &nbsp;
+							</td>
+							<td>
+                              <input type=text name="P5030" value="<% 5030 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P5031" value="<% 5031 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P5032" value="<% 5032 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P5033" value="<% 5033 %>" maxlength=3 size=3>
+							</td>
+						   </tr>
+					       <tr>
+						    <td>
+                              &nbsp;&nbsp;4th Preferred DNS server: &nbsp;
+							</td>
+							<td>
+                              <input type=text name="P5034" value="<% 5034 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P5035" value="<% 5035 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P5036" value="<% 5036 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P5037" value="<% 5037 %>" maxlength=3 size=3>
+							</td>
+						   </tr>
+					      </table>
+                         </td>
+                        </tr>
+					   </table>
+                      </td>
+                     </tr>
+                     <tr>
+                      <td><input TYPE="radio" NAME="P8" VALUE=1 <% 8 1 checked %>>
+                              statically configured as<br>
+                       <table width="100%">
+                        <tr>
+                         <td width="6%">&nbsp;</td>
+                         <td width="27%">IP Address: </td>
+                         <td><input type=text name="P9"  value="<% 9  %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P10" value="<% 10 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P11" value="<% 11 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P12" value="<% 12 %>" maxlength=3 size=3>
+                         </td>
+                        </tr>
+                        <tr>
+                         <td>&nbsp;</td>
+                         <td>Subnet Mask: </td>
+                         <td><input type=text name="P13" value="<% 13 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P14" value="<% 14 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P15" value="<% 15 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P16" value="<% 16 %>" maxlength=3 size=3>
+                         </td>
+                        </tr>
+                        <tr>
+                         <td>&nbsp;</td>
+                         <td>Default Router: </td>
+                         <td><input type=text name="P17" value="<% 17 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P18" value="<% 18 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P19" value="<% 19 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P20" value="<% 20 %>" maxlength=3 size=3>
+                         </td>
+                        </tr>
+                        <tr>
+                         <td>&nbsp;</td>
+                         <td>DNS Server 1: </td>
+                         <td><input type=text name="P21" value="<% 21 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P22" value="<% 22 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P23" value="<% 23 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P24" value="<% 24 %>" maxlength=3 size=3>
+                         </td>
+                        </tr>
+                        <tr>
+                         <td>&nbsp;</td>
+                         <td>DNS Server 2: </td>
+                         <td><input type=text name="P25" value="<% 25 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P26" value="<% 26 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P27" value="<% 27 %>" maxlength=3 size=3>
+                              <b>.</b><input type=text name="P28" value="<% 28 %>" maxlength=3 size=3>
+                         </td>
+                        </tr>
+                       </table>
+                      </td>
+                     </tr>
+                    </table>
+                   </td>
+                 </tr>
+                </table>
+               </td>
+              </tr>
+              <tr>
+                <td align="right" valign="top"><b>IPv6 Address: </b></td>
+                <td>
+                 <table width="95%" border=0 cellspacing=1 cellpadding=1>
+                  <tr>
+                   <td>
+                    <table width="100%" border=0 cellspacing=1 cellpadding=1>
+                     <tr>
+                      <td><input name="P1419" type="radio" value="0" <% 1419 0 checked %>>
+                              dynamically assigned via DHCP
+                              <br>
+                      </td>
+                     </tr>
+                     <tr>
+                      <td><input name="P1419" type="radio" value="1" <% 1419 1 checked %>>
+                              statically configured as: <br>
+                       <table>
+						<tr>
+						   <td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td><input name="P1426" type="radio" value="0" <% 1426 0 checked %>> Full Static
+                              <table width="100%">
+                                  <tr>
+                                    <td width="6%">&nbsp;</td>
+                                    <td width="70%">Static IPv6 Address:<br></td>
+                                    <td colspan=3><input name="P1420" value="<% 1420 %>" maxlength="40" size="30" type="text"></td>
+                                  </tr>
+                                  <tr>
+                                    <td width="6%">&nbsp;</td>
+                                    <td width="70%">IPv6 Prefix Length:<br></td>
+                                    <td colspan=3><input name="P1421" value="<% 1421 %>" maxlength="3" size="3" type="text"></td>
+                                  </tr>
+                              </table>
+						   </td>
+						</tr>
+						<tr>
+						   <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+						   <td><input name="P1426" type="radio" value="1" <% 1426 1 checked %>>Prefix Static
+                              <table width="100%">
+                                  <tr>
+                                    <td width="6%">&nbsp;&nbsp;</td>
+                                    <td width="70%">IPv6 Prefix(64 bits):<br></td>
+                                    <td colspan=3><input name="P1422" value="<% 1422 %>" maxlength="40" size="30" type="text"></td>
+                                  </tr>
+                              </table>
+						   </td>
+                        </tr>
+                        <tr>
+						<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                         <td>
+                          <table>
+                              <tr>
+                                <td>DNS Server 1:&nbsp;
+                                </td>
+                                <td><input name="P1424" value="<% 1424 %>" maxlength="40" size="30" type="text">
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>DNS Server 2:&nbsp;
+                                </td>
+                                <td><input name="P1425" value="<% 1425 %>" maxlength="40" size="30" type="text">
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>Preferred DNS Server:&nbsp;
+                                </td>
+                                <td><input name="P1423" value="<% 1423 %>" maxlength="40" size="30" type="text">
+                                </td>
+                              </tr>
+                          </table>
+						</td>
+                     </tr>
+                    </table></td></tr>
+                   </table>
+                  </td>
+                 </tr>
+                </table>
+               </td>
+              </tr>
+
+              <tr>
+                <td align=right valign=top><b>Time Zone: </b></td>
+                <td>&nbsp; <select name="P64">
+                    <option value="TZA+12" <% 64 TZA+12    selected %>>
+                        GMT-12:00 (International Date Line West)</option>
+                    <option value="TZB+11" <% 64 TZB+11    selected %>>
+                        GMT-11:00 (Midway Island, Samoa)</option>
+                    <option value="HAW10" <% 64 HAW10     selected %>>
+                        GMT-10:00 (US Hawaiian Time)</option>
+                    <option value="AKST9AKDT" <% 64 AKST9AKDT selected %>>
+                        GMT-09:00 (US Alaska Time)</option>
+                    <option value="PST8PDT" <% 64 PST8PDT   selected %>>
+                        GMT-08:00 (US Pacific Time, Los Angeles)</option>
+                    <option value="PST8PDT,M4.1.0,M10.5.0" <% 64 PST8PDT,M4.1.0,M10.5.0 selected %>>
+                        GMT-08:00 (Baja California)</option>
+                    <option value="MST7MDT" <% 64 MST7MDT   selected %>>
+                        GMT-07:00 (US Mountain Time, Denver)</option>
+                    <option value="MST7" <% 64 MST7      selected %>>
+                        GMT-07:00 (Mountain Time (Arizona, no DST))</option>
+                    <option value="MST7MDT,M4.1.0,M10.5.0" <% 64 MST7MDT,M4.1.0,M10.5.0 selected %>>
+                        GMT-07:00 (Chihuahua, La Paz, Mazatlan)</option>
+                    <option value="CST6CDT" <% 64 CST6CDT  selected %>>
+                        GMT-06:00 (Central Time)</option>
+                    <option value="CST+6" <% 64 CST+6     selected %>>
+                        GMT-06:00 (Central America)</option>
+                    <option value="CST6CDT,M4.1.0,M10.5.0" <% 64 CST6CDT,M4.1.0,M10.5.0 selected %>>
+                        GMT-06:00 (Guadalajara, Mexico City, Monterrey)</option>
+                    <option value="EST5EDT" <% 64 EST5EDT   selected %>>
+                        GMT-05:00 (Eastern Time)</option>
+                    <option value="EST5" <% 64 EST5   selected %>>
+                        GMT-05:00 (Eastern Time without daylight saving)</option>
+                    <option value="TZf+4:30" <% 64 TZf+4:30  selected %>>
+                        GMT-04:30 (Caracas)</option>
+                    <option value="AST4ADT" <% 64 AST4ADT   selected %>>
+                        GMT-04:00 (Atlantic Time)</option>
+                    <option value="AST4ADT,M4.1.0/00:01:00,M10.5.0/00:01:00" <% 64 AST4ADT,M4.1.0/00:01:00,M10.5.0/00:01:00 selected %>>
+                        GMT-04:00 (Atlantic Time (New Brunswick))</option>
+                    <option value="NST+3:30NDT+2:30,M4.1.0/00:01:00,M10.5.0/00:01:00" <% 64 NST+3:30NDT+2:30,M4.1.0/00:01:00,M10.5.0/00:01:00 selected %>>
+                        GMT-03:30 (Newfoundland Time)</option>
+                    <option value="TZK+3" <% 64 TZK+3     selected %>>
+                        GMT-03:00 (Greenland)</option>
+                    <option value="BRST+3BRDT+2,M10.3.0,M2.3.0" <% 64 BRST+3BRDT+2,M10.3.0,M2.3.0 selected %>>
+                        GMT-03:00 (Brazil, Sao Paulo)</option>
+                    <option value="UTC+3" <% 64 UTC+3     selected %>>
+                        GMT-02:00 (Argentina)</option>
+                    <option value="TZL+2" <% 64 TZL+2     selected %>>
+                        GMT-02:00 (Mid-Atlantic)</option>
+                    <option value="TZM+1" <% 64 TZM+1     selected %>>
+                        GMT-01:00 (Azores, Cape Verde Is.)</option>
+                    <option value="TZN+0" <% 64 TZN+0     selected %>>
+                        GMT (Edinburgh, Casablanca, Monrovia)</option>
+                    <option value="GMT+0BST-1,M3.5.0/01:00:00,M10.5.0/02:00:00" <% 64 GMT+0BST-1,M3.5.0/01:00:00,M10.5.0/02:00:00 selected %>>
+                        GMT (London, Great Britain)</option>
+                    <option value="WET-0WEST-1,M3.5.0/01:00:00,M10.5.0/02:00:00" <% 64 WET-0WEST-1,M3.5.0/01:00:00,M10.5.0/02:00:00 selected %>>
+                        GMT (Lisbon, Portugal)</option>
+                    <option value="GMT+0IST-1,M3.5.0/01:00:00,M10.5.0/02:00:00" <% 64 GMT+0IST-1,M3.5.0/01:00:00,M10.5.0/02:00:00 selected %>>
+                        GMT (Dublin, Ireland)</option>
+                    <option value="TZO-1" <% 64 TZO-1     selected %>>
+                        GMT+01:00 (Paris, Vienna, Warsaw)</option>
+                    <option value="CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00" <% 64 CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00 selected %>>
+                        GMT+01:00 (Roma, Paris, Madrid, Prague, Berlin, Budapest, Amsterdam, Barcelona)</option>
+                    <option value="TZO-1" <% 64 TZO-1     selected %>>
+                        GMT+01:00 (Brussels, Belgium)</option>
+                    <option value="TZP-2" <% 64 TZP-2     selected %>>
+                        GMT+02:00 (Israel, Cairo, Athens, Istanbul, Bucharest)</option>
+                    <option value="EET-2EEST-3,M3.5.0/03:00:00,M10.5.0/04:00:00" <% 64 EET-2EEST-3,M3.5.0/03:00:00,M10.5.0/04:00:00 selected %>>
+                        GMT+02:00 (Helsinki, Athens, Tallinn)</option>
+                    <option value="EET-2EEST,M3.5.0/3,M10.5.0/4" <% 64 EET-2EEST,M3.5.0/3,M10.5.0/4 selected %>>
+                        GMT+02:00 (Kyiv, Ukraine)</option>
+                    <option value="TZQ-3" <% 64 TZQ-3     selected %>>
+                        GMT+03:00 (Kuwait, Baghdad, Tehran, Nairobi)</option>
+                    <option value="MSK-3MSD,M3.5.0/2,M10.5.0/3" <% 64 MSK-3MSD,M3.5.0/2,M10.5.0/3 selected %>>
+                        GMT+03:00 (Moscow, Russia)</option>
+                    <option value="MST-3MDT,M3.5.0/2,M10.5.0/3" <% 64 MST-3MDT,M3.5.0/2,M10.5.0/3 selected %>>
+                        GMT+03:00 (St.Petersburg, Russia)</option>
+                    <option value="TZR-4" <% 64 TZR-4     selected %>>
+                        GMT+04:00 (Abu Dhabi, Baku)</option>
+                    <option value="TZS-5" <% 64 TZS-5     selected %>>
+                        GMT+05:00 (Islamabad, Ekaterinburg, Karachi, Tashkent)</option>
+                    <option value="TZT-5:30" <% 64 TZT-5:30  selected %>>
+                        GMT+05:30 (Chennai, New Delhi, Mumbai)</option>
+                    <option value="TZU-5:45" <% 64 TZU-5:45  selected %>>
+                        GMT+05:45 (Kathmandu)</option>
+                    <option value="TZV-6" <% 64 TZV-6     selected %>>
+                        GMT+06:00 (Almaty, Astana, Dhaka, Novosibirsk)</option>
+                    <option value="TZW-6:30" <% 64 TZW-6:30  selected %>>
+                        GMT+06:30 (Rangoon)</option>
+                    <option value="TZX-7" <% 64 TZX-7     selected %>>
+                        GMT+07:00 (Bankok, Hanoi, Krasnoyarsk)</option>
+                    <option value="WIB-7" <% 64 WIB-7     selected %>>
+                        GMT+07:00 (Jakarta)</option>
+                    <option value="TZY-8" <% 64 TZY-8     selected %>>
+                        GMT+08:00 (Beijing, Taipei, Kuala Lumpur, Irkutsk)</option>
+                    <option value="SGT-8" <% 64 SGT-8     selected %>>
+                        GMT+08:00 (Singapore)</option>
+                    <option value="ULAT-8" <% 64 ULAT-8    selected %>>
+                        GMT+08:00 (Ulaanbaatar, Mongolia)</option>
+                    <option value="WST-8" <% 64 WST-8     selected %>>
+                        GMT+08:00 (Perth)</option>
+                    <option value="TZZ-9" <% 64 TZZ-9     selected %>>
+                        GMT+09:00 (Japan, Korea, Yakutsk)</option>
+                    <option value="CST-9:30CDT-10:30,M10.5.0/02:00:00,M3.5.0/03:00:00" <% 64 CST-9:30CDT-10:30,M10.5.0/02:00:00,M3.5.0/03:00:00 selected %>>
+                        GMT+09:30 (Adelaide)</option>
+                    <option value="CST-9:30" <% 64 CST-9:30  selected %>>
+                        GMT+09:30 (Darwin)</option>
+                    <option value="TZb-10" <% 64 TZb-10    selected %>>
+                        GMT+10:00 (Guam)</option>
+                    <option value="EST-10EDT-11,M10.1.0/02:00:00,M3.5.0/03:00:00" <% 64 EST-10EDT-11,M10.1.0/02:00:00,M3.5.0/03:00:00 selected %>>
+                        GMT+10:00 (Hobart)</option>
+                    <option value="EST-10EDT-11,M10.5.0/02:00:00,M3.5.0/03:00:00" <% 64 EST-10EDT-11,M10.5.0/02:00:00,M3.5.0/03:00:00 selected %>>
+                        GMT+10:00 (Sydney, Melbourne, Canberra)</option>
+                    <option value="EST-10" <% 64 EST-10    selected %>>
+                        GMT+10:00 (Brisbane)</option>
+                    <option value="TZc-11" <% 64 TZc-11    selected %>>
+                        GMT+11:00 (Magadan, Solomon Is., New Caledonia)</option>
+                        <option value="NZST-12NZDT-13,M10.1.0/02:00:00,M3.3.0/03:00:00" <% 64 NZST-12NZDT-13,M10.1.0/02:00:00,M3.3.0/03:00:00 selected %>>
+                        GMT+12:00 (Auckland, Wellington)</option>
+                    <option value="TZd-12" <% 64 TZd-12    selected %>>
+                        GMT+12:00 (Fiji)</option>
+                    <option value="TZe-13" <% 64 TZe-13    selected %>>
+                        GMT+13:00 (Nuku'alofa)</option>
+
+                    <option value=customize <% 64 customize selected %>>Using self-defined Time Zone</option>
+                  </select> </td>
+              </tr>
+              <tr>
+                <td align=right><i>Self-Defined Time Zone:</i></td>
+                <td>&nbsp;
+                  <input type=text name="P246" value="<% 246                              %>" maxlength=100 size=33>
+                  (For example: MTZ+6MDT+5,M4.1.0,M11.1.0) </td>
+              </tr>
+              <tr>
+                <td align=right valign=top><i>Allow DHCP server to set Time Zone:</i></td>
+				<td>&nbsp; <input type=radio name="P143" value=0 <% 143 0 checked %>>
+				No &nbsp;&nbsp; &nbsp; <input type=radio name="P143" value=1 <% 143 1 checked %>>
+				Yes &nbsp;</td>
+              </tr>
+              <tr>
+                <td align=right valign=top><b>Language: </b></td>
+                <td>&nbsp; <select name="P342">
+                    <option value=0 <% 342 0 selected %>>English</option>
+                    <option value=4 <% 342 4 selected %>>Chinese</option>
+                    <option value=10 <% 342 10 selected %>>Spanish IVR</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+<script type="text/javascript">
+var A="<% session_user %>" ;
+var B=<% 88 %> ;
+if( B != 1 &&  A == "user" )
+{
+	document.write( "<td align=right valign=top><b>Reset ISP Data : </b></td>" ) ;
+	document.write( "<td><table><tr><td><input type=\"button\" name=\"reset_unit\" value=\"Reset\" onClick=\"document.getElementById('unit_reset').value=1;document.reset_form.submit()\"></td></tr></table></td>" ) ;
+}
+else if( B != 1 && A == "admin" )
+{
+    document.write( "<td align=right valign=top><b>Reset Type: </b></td>" ) ;
+    document.write( "<td><table><tr><td><select name=\"reset_type\"><option value=1 selected >ISP Data Reset</option>" ) ;
+	if( B == 0 )
+	{
+        document.write( "<option value=2 >VOIP Data Reset</option><option value=0 >Full Reset</option>" ) ;
+	}
+    document.write( "</select></td><td><input type=\"button\" name=\"reset_unit\" value=\"Reset\" onClick=\"document.getElementById('unit_reset').value=document.basic_form.reset_type.value;document.reset_form.submit()\">" ) ;
+	document.write( "</td></tr></table></td>" ) ;
+}
+</script>
+			  </tr>
+              <tr>
+              </tr>
+              <tr>
+                <td colspan=2>&nbsp;</td>
+              </tr>
+              <tr height=28 bgcolor="#F3C47C" align=center>
+                <td colspan=2> <input type="submit" name="update" value="Update">
+                  &nbsp;&nbsp; <input type="submit" name="apply" value="Apply">
+                  &nbsp;&nbsp; <input type="button" name="cancel" value="Cancel" onClick="document.location='login'">
+                  &nbsp;&nbsp; <input type="button" name="reboot" value="Reboot" onClick="document.rs_form.submit()">
+                  <input name="gnkey" type=hidden value=0b82> </td>
+              </tr>
+</table></td>
+</tr>
+<tr><td bgcolor="#336699" align="center" class="l"><font size="1">All Rights Reserved Grandstream Networks, Inc. 2006-2018</font></td></tr></table></td>
+</tr></table>
+</form>
+<form name="rs_form" action="rs" method="post" autocomplete="off"><input name="session_token" type=hidden value="<% session_token %>"></form>
+<form name="reset_form" action="unit_reset" method="post" autocomplete="off"><input name="session_token" type=hidden value="<% session_token %>"><input id="unit_reset" name="reset_type" type=hidden value="1"></form>
+</body>
+<script type="text/javascript">
+function loadSessionStatus()
+{
+	var result = $.ajax({
+		url: '/cgi-bin/api-get_sessioninfo',
+		contentType: "application/json",
+		success: function(input) {
+			if (input.results.length > 0)
+			{
+				if ( input.results[0].session_timeout == "true")
+				{
+					window.location="login";
+				}
+			}
+		},
+		error: function(xhr, ajaxOptions, thrownError) {
+		}
+	});
+}
+
+function checkSessionStatus()
+{
+	loadSessionStatus();
+	setTimeout("checkSessionStatus()", 10000);
+}
+
+function initial()
+{
+	setTimeout("checkSessionStatus()", 1000); // delay loading
+}
+
+initial();
+</script>
+</html>
