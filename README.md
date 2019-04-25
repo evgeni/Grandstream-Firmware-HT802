@@ -89,3 +89,6 @@ Only the first 32 bytes of the header are encrypted
 All the body is encrypted by block of 32 bytes, each time reinitializing the cipher (LOL)  
 
 I'm pretty sure of these infos, but I'm still unable to decrypt the files with my script  
+Maybe this is due to the wrong conversion of the key from hex to bytes they made.  
+They always subtract 0x37 from hex 'A'-'F', also if they are lowercase, so 'a'-'f' will become 0x2a...0x2f instead of 0xa...0xf  
+Infact, if you try to decrypt the files using the default key but uppercase, the decryption will fail!  
