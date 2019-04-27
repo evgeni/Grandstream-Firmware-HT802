@@ -1,9 +1,52 @@
-# Firmware dumps
+# GrandStream Firmware Patcher
+A tool to extract, decrypt and patch files from firmware
 
-- HT802 1.0.0.24 extracted via serial
-- HT802 1.0.10.6 extraced via gssu ftp
+## Usage
+### Info
+```bash
+$ ./GSFW.py info -i ht802fw.bin
+** Firmware Info **
+Contained files:
+	 ht802boot.bin 	version: 1.0.9.1 	size: 245760 bytes
+	 ht802core.bin 	version: 1.0.9.1 	size: 1187840 bytes
+	 ht802base.bin 	version: 1.0.9.2 	size: 2838528 bytes
+	 ht802prog.bin 	version: 1.0.9.3 	size: 3223552 bytes
+```  
 
-# Grandstream Super User
+### Extract 
+Decrypt and extract all contained files
+```bash
+$ ./GSFW.py extract -i ht802fw.bin -d /tmp/test -k 37d6ae8bc920374649426438bde35493
+** Firmware Extract **
+Used key: 37d6ae8bc920374649426438bde35493
+Extracting files:
+	 /tmp/test134/ht802boot.bin 	version: 1.0.9.1 	size: 245760 bytes
+		Head key: 738d0cb8bc02736494244683fb5e4539
+		Body key: 000b06d307e2041a0a0bfd2100010000
+		Decrypting...
+	 /tmp/test134/ht802core.bin 	version: 1.0.9.1 	size: 1187840 bytes
+		Head key: 738d0cb8bc02736494244683fb5e4539
+		Body key: 000c834507e2041a0a0bfd2100010000
+		Decrypting...
+	 /tmp/test134/ht802base.bin 	version: 1.0.9.2 	size: 2838528 bytes
+		Head key: 738d0cb8bc02736494244683fb5e4539
+		Body key: 000d64c807e2041a0a0bfd2100010000
+		Decrypting...
+	 /tmp/test134/ht802prog.bin 	version: 1.0.9.3 	size: 3223552 bytes
+		Head key: 738d0cb8bc02736494244683fb5e4539
+		Body key: 000ee4a507e2041a0a0bfd2100010000
+		Decrypting...
+```  
+
+### Patch  
+Replace the body of a modified file (eg: modified prog squashfs)  
+```bash
+./GSFW.py patch -i ht802fw.bin -o ht802fw.bin.mod -n ht802prog.bin -b prog.squashfs -k 37d6ae8bc920374649426438bde35493
+** Firmware Patch **
+Coming soon
+```  
+
+# GrandStream Super User
 - Connect to ssh and login with admin account
 - Run command `gssu`
 - Copy the challenge
@@ -29,6 +72,11 @@ core             lib              sys
 country_profile  oem              test
 # 
 ```
+# Firmware dumps
+
+- HT802 1.0.0.24 extracted via serial  
+- HT802 1.0.10.6 extraced via gssu ftp  
+
 # Firmware format
 ## Header (648 bytes)
 | Size (byte)  | Type | Name | Description |
@@ -83,12 +131,14 @@ country_profile  oem              test
 
 # File encryption
 Each file is encrypted with AES 128 CBC  
-The default key is: 37d6ae8bc920374649426438bde35493 (16 bytes)  
+The default key is: 37d6ae8bc920374649426438bde35493 (16 bytes converted in byte array)  
 The IV is: Grandstream Inc. (16 bytes)  
 Only the first 32 bytes of the header are encrypted  
 All the body is encrypted by block of 32 bytes, each time reinitializing the cipher (LOL)  
 
-I'm pretty sure of these infos, but I'm still unable to decrypt the files with my script  
-Maybe this is due to the wrong conversion of the key from hex to bytes they made.  
+They wrongly convert the key from hex to bytes:  
 They always subtract 0x37 from hex 'A'-'F', also if they are lowercase, so 'a'-'f' will become 0x2a...0x2f instead of 0xa...0xf  
 Infact, if you try to decrypt the files using the default key but uppercase, the decryption will fail!  
+
+The header key is the given key with all the pair of nibble swapped  
+The body key is formed by the second block of 16 bytes of the decrypted header, with all the pair of bytes swapped  
