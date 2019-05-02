@@ -41,9 +41,25 @@ Extracting files:
 ### Patch  
 Replace the body of a modified file (eg: modified prog squashfs)  
 ```bash
-./GSFW.py patch -i ht802fw.bin -o ht802fw.bin.mod -n ht802prog.bin -b prog.squashfs -k 37d6ae8bc920374649426438bde35493
+./GSFW.py patch -i ht802fw.bin -o ht802fw.bin.mod -n ht802prog.bin -b progmod.squashfs -v 1.0.9.4 -k 37d6ae8bc920374649426438bde35493
 ** Firmware Patch **
-Coming soon
+Used key: 37d6ae8bc920374649426438bde35493
+Looking for file: ht802prog.bin
+	File found!
+	Decrypting file header:
+		Head key: 738d0cb8bc02736494244683fb5e4539
+		Body key: 000ee4a507e2041a0a0bfd2100010000
+		Decrypting...
+	New version:   1.0.9.4
+	New file size: 3223552 bytes
+	New checksum:  0xe4a5
+	Patching file header...
+	Encrypting new file:
+		Head key: 738d0cb8bc02736494244683fb5e4539
+		Body key: 000ee4a507e2041a0a0bfd2100010000
+		Encrypting...
+Patching firmware header...
+Writing new firmware
 ```  
 
 # GrandStream Super User
