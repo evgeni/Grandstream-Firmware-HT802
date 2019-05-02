@@ -20,23 +20,28 @@ $ ./GSFW.py extract -i ht802fw.bin -d /tmp/test -k 37d6ae8bc920374649426438bde35
 ** Firmware Extract **
 Used key: 37d6ae8bc920374649426438bde35493
 Extracting files:
-	 /tmp/test134/ht802boot.bin 	version: 1.0.9.1 	size: 245760 bytes
+	 /tmp/test/ht802boot.bin 	version: 1.0.9.1 	size: 245760 bytes
 		Head key: 738d0cb8bc02736494244683fb5e4539
 		Body key: 000b06d307e2041a0a0bfd2100010000
 		Decrypting...
-	 /tmp/test134/ht802core.bin 	version: 1.0.9.1 	size: 1187840 bytes
+	 /tmp/test/ht802core.bin 	version: 1.0.9.1 	size: 1187840 bytes
 		Head key: 738d0cb8bc02736494244683fb5e4539
 		Body key: 000c834507e2041a0a0bfd2100010000
 		Decrypting...
-	 /tmp/test134/ht802base.bin 	version: 1.0.9.2 	size: 2838528 bytes
+	 /tmp/test/ht802base.bin 	version: 1.0.9.2 	size: 2838528 bytes
 		Head key: 738d0cb8bc02736494244683fb5e4539
 		Body key: 000d64c807e2041a0a0bfd2100010000
 		Decrypting...
-	 /tmp/test134/ht802prog.bin 	version: 1.0.9.3 	size: 3223552 bytes
+	 /tmp/test/ht802prog.bin 	version: 1.0.9.3 	size: 3223552 bytes
 		Head key: 738d0cb8bc02736494244683fb5e4539
 		Body key: 000ee4a507e2041a0a0bfd2100010000
 		Decrypting...
 ```  
+You can now extract filesystem from sqfs:  
+`$ sudo binwalk -e /tmp/test/ht802prog.bin`  
+Make you mods...  
+And repack the sqfs:  
+`$ sudo mksquashfs squashfs-root progmod.squashfs -comp xz -all-root -noappend -always-use-fragments `
 
 ### Patch  
 Replace the body of a modified file (eg: modified prog squashfs)  
