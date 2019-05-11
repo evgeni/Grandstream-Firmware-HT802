@@ -1,5 +1,7 @@
 # GrandStream Firmware Patcher
-A tool to extract, decrypt and patch files from firmware
+A tool to extract, decrypt and patch files from firmware  
+
+With this tool you can create Custom Firmware for Grandstream devices  
 
 ## Usage
 ### Info
