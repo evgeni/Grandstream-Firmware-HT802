@@ -8,10 +8,11 @@ With this tool you can create Custom Firmwares
 
 ### CallFilter  
 A runtime injected assembly mod to obtain a dynamic and scriptable black list  
+You can try it even without a Custom Firmware! ;-)  
 You can extend it with services like Tellows  
 
 ### SuperUser  
-A tool to get a root shell whitout a custom firmware  
+A tool to get a root shell whitout a Custom Firmware  
 
 ### FirmwareDumps  
 A set of firmwares already decrypted and extracted  
