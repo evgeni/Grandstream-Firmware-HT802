@@ -140,8 +140,8 @@ country_profile  oem              test
 | :----------: | ---- | ---- | ------- |
 | File size 1 | Byte array | File 1 | Encrypted (header + body) (ht802boot.bin, uboot)|
 | File size 2 | Byte array | File 2 | Encrypted (header + body) (ht802core.bin, linux kernel)|
-| File size 3 | Byte array | File 3 | Encrypted (header + body) (ht802base.bin, squashfs)|
-| File size 4 | Byte array | File 4 | Encrypted (header + body) (ht802prog.bin, squashfs)|
+| File size 3 | Byte array | File 3 | Encrypted (header + body) (ht802base.bin, squashfs, root fs)|
+| File size 4 | Byte array | File 4 | Encrypted (header + body) (ht802prog.bin, squashfs, mounted on /app)|
 | File size 5 | Byte array | File 5 | Encrypted (header + body) |
 | File size 6 | Byte array | File 6 | Encrypted (header + body) |
 | File size 7 | Byte array | File 7 | Encrypted (header + body) |
