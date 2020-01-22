@@ -39,13 +39,13 @@ def swapBytes(key):
     return bytes(res)
 
 def GSencryptDecrypt(key, buffer, encrypt):
-    res = bytes()
+    res = bytearray(len(buffer))
     for i in range(0, len(buffer), 32):
         cipher = AES.new(key, AES.MODE_CBC, GS_IV)
         if encrypt:
-            res += cipher.encrypt(buffer[i:i+32])
+            res[i:i+32] = cipher.encrypt(buffer[i:i+32])
         else:
-            res += cipher.decrypt(buffer[i:i+32])
+            res[i:i+32] = cipher.decrypt(buffer[i:i+32])
     return res
 
 def GSencrypt(key, buffer):
