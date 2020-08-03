@@ -8,7 +8,8 @@ from argparse import ArgumentParser, FileType, ArgumentTypeError
 
 GS_IV = b"Grandstream Inc."
 GS_KEY = "37d6ae8bc920374649426438bde35493"
-GS_NUM_FILES = 7
+GS_NUM_FILES = 7   # 8 with GXP16xx
+GS_HEADER_LEN = 72 * (GS_NUM_FILES + 2)   # 648 with HT802, 720 with GXP16xx (72 is the GCD of 648 and 720)
 GS_MAGIC = 0x23c97af9
 
 def GrandStupidity(key):
@@ -151,7 +152,7 @@ def computeChecksum(data):
 def info(input_file, verbose, key):
     print('** Firmware Info **')
 
-    magic, filenames, filesizes, filevers = parseHeaderFW(input_file.read(648))
+    magic, filenames, filesizes, filevers = parseHeaderFW(input_file.read(GS_HEADER_LEN))
 
     if magic != GS_MAGIC:
         print("Invalid magic!")
@@ -189,7 +190,7 @@ def extract(input_file, output_dir, key):
         print("Directory", os.path.basename(output_dir) , "already exists, cannot extract!")
         return
 
-    magic, filenames, filesizes, filevers = parseHeaderFW(input_file.read(648))
+    magic, filenames, filesizes, filevers = parseHeaderFW(input_file.read(GS_HEADER_LEN))
 
     if magic != GS_MAGIC:
         print("Invalid magic!")
@@ -213,7 +214,7 @@ def extract(input_file, output_dir, key):
 def patch(original, output, mod_name, body, version, key):
     print('** Firmware Patch **')
 
-    header_fw = original.read(648)
+    header_fw = original.read(GS_HEADER_LEN)
 
     magic, filenames, filesizes, filevers = parseHeaderFW(header_fw)
 
