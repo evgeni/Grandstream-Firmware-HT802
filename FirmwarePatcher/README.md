@@ -133,3 +133,12 @@ Infact, if you try to decrypt the files using the default key but uppercase, the
 
 The header key is the given key with all the pair of nibble swapped  
 The body key is formed by the second block of 16 bytes of the decrypted header, with all the pair of bytes swapped  
+
+# Find encryption key
+The "new_provision" binary search the key in these two places:  
+- in nvram at variable 242: `nvram get 242` (empty if not present)  
+- in a viartual file: `cat /proc/gxp/dev_info/hw_features/default_fwkey` (nokey if not present)  
+
+If in both places there is no key, the binary falls back on two standard keys:  
+- 37d6ae8bc920374649426438bde35493  
+- de395fe3e08d8a47984de86e36b37eb0  
