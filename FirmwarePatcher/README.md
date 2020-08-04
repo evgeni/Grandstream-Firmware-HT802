@@ -142,3 +142,9 @@ The "new_provision" binary search the key in these two places:
 If in both places there is no key, the binary falls back on two standard keys:  
 - 37d6ae8bc920374649426438bde35493  
 - de395fe3e08d8a47984de86e36b37eb0  
+
+# Supported devices
+This tool was tested with the following devices, other devices may also be supported.  
+- HT802
+- HT814
+- GXP16XX (using [GS_NUM_FILES](https://github.com/BigNerd95/Grandstream-Firmware-HT802/blob/master/FirmwarePatcher/GSFW.py#L11) = 8)
