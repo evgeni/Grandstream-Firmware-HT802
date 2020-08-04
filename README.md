@@ -1,5 +1,5 @@
 # GrandStream HT802 Hacks  
-A set of tools to enhance features of your HT802 device  
+A set of tools to enhance features of your HT802/HT814 device  
 (these tools may works on others devices too)  
 
 ### FirmwarePatcher
