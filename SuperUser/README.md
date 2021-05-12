@@ -42,11 +42,12 @@ You can patch dropbear at run time to always spawn a root shell directly, so you
 - On PC run `./offset_finder.sh "gs_config -ssh" dropbear`  
 - Output example
 ```
-OFFSET = 277716
+ELF OFFSET = 244948
+Runtime OFFSET = 277716
 ```
 
 3) Patch dropbear  
-- Replace `OFFSET` in the script below with the output of `offset_finder.sh` command  
+- Replace `OFFSET` in the script below with the `Runtime OFFSET` output of `offset_finder.sh` command  
 - On device run (copy paste)  
 ```bash
 string_offset=OFFSET #(output number of offset_finder.sh command)
