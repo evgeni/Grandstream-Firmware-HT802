@@ -50,7 +50,7 @@ Runtime OFFSET = 277716
 - Replace `OFFSET` in the script below with the `Runtime OFFSET` output of `offset_finder.sh` command  
 - On device run (copy paste)  
 ```bash
-string_offset=OFFSET #(output number of offset_finder.sh command)
+string_offset=OFFSET #(Runtime OFFSET output of offset_finder.sh command)
 for pid in $(pidof dropbear)
 do
     echo -e -n "/bin/sh\x00" | dd of=/proc/$pid/mem bs=1 seek=$string_offset 2>/dev/null
