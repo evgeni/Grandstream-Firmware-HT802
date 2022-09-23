@@ -42,6 +42,7 @@ Extracting files:
 You can now extract filesystem from sqfs:  
 `$ sudo binwalk -e /tmp/test/ht802prog.bin`  
 Make you mods...  
+Compile mksquashfs from https://squashfs-lzma.org/  
 And repack the sqfs:  
 `$ sudo mksquashfs squashfs-root progmod.squashfs -comp xz -all-root -noappend -always-use-fragments `
 
