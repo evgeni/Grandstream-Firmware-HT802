@@ -44,7 +44,7 @@ You can now extract filesystem from sqfs:
 Make you mods...  
 Compile mksquashfs from https://squashfs-lzma.org/  
 And repack the sqfs:  
-`$ sudo mksquashfs squashfs-root progmod.squashfs -comp xz -all-root -noappend -always-use-fragments `
+`$ sudo ./mksquashfs squashfs-root progmod.squashfs -comp xz -all-root -noappend -always-use-fragments `
 
 ### Patch  
 Replace the body of a modified file (eg: modified prog squashfs)  
