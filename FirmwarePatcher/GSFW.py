@@ -8,9 +8,22 @@ from argparse import ArgumentParser, FileType, ArgumentTypeError
 
 GS_IV = b"Grandstream Inc."
 GS_KEY = "37d6ae8bc920374649426438bde35493"
-GS_NUM_FILES = 7   # 8 with GXP16xx
-GS_HEADER_LEN = 72 * (GS_NUM_FILES + 2)   # 648 with HT802, 720 with GXP16xx (72 is the GCD of 648 and 720)
 GS_MAGIC = 0x23c97af9
+GS_CONFIGS = {
+    'HT8xx': {
+        'GS_NUM_FILES': 7,
+        'GS_OFFSET': 0,
+    },
+    'GXP16xx': {
+        'GS_NUM_FILES': 8,
+        'GS_OFFSET': 0,
+    },
+    'HT8xxV2': {
+        'GS_NUM_FILES': 16,
+        'GS_OFFSET': 16*16,
+    },
+}
+GS_MODES = list(GS_CONFIGS.keys())
 
 def GrandStupidity(key):
     res = bytearray(key.encode("ascii"))
@@ -277,16 +290,19 @@ def parse_cli():
 
     infoParser = subparser.add_parser('info', help='Firmware info')
     infoParser.add_argument('-i', '--input', required=True, metavar='INPUT_FILE', type=FileType('rb'))
+    infoParser.add_argument('-m', '--mode', required=False, default=GS_MODES[0], choices=GS_MODES)
     infoParser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
     infoParser.add_argument('-k', '--key', metavar='KEY', default=GS_KEY, type=valid_key, help='32 bytes hex string, Default: '+GS_KEY)
 
     extractParser = subparser.add_parser('extract', help='Extract and decrypt files')
     extractParser.add_argument('-i', '--input', required=True, metavar='INPUT_FILE', type=FileType('rb'))
+    extractParser.add_argument('-m', '--mode', required=False, default=GS_MODES[0], choices=GS_MODES)
     extractParser.add_argument('-d', '--directory', required=True, metavar='EXTRACT_DIRECTORY')
     extractParser.add_argument('-k', '--key', metavar='KEY', default=GS_KEY, type=valid_key, help='32 bytes hex string, Default: '+GS_KEY)
 
     patchParser = subparser.add_parser('patch', help='Patch original firmware')
     patchParser.add_argument('-i', '--input', required=True, metavar='INPUT_FILE', type=FileType('rb'), help='Original firmware file')
+    patchParser.add_argument('-m', '--mode', required=False, default=GS_MODES[0], choices=GS_MODES)
     patchParser.add_argument('-o', '--output', required=True, metavar='OUTPUT_FILE', type=FileType('wb'), help='Output patched firmware')
     patchParser.add_argument('-n', '--name', required=True, metavar='FILE_TO_PATCH', help='File name to patch')
     patchParser.add_argument('-b', '--body', required=True, metavar='INPUT_BODY', type=FileType('rb'), help='Body of file to patch')
@@ -300,6 +316,15 @@ def parse_cli():
 
 def main():
     args = parse_cli()
+
+    global GS_NUM_FILES
+    global GS_HEADER_LEN
+    GS_NUM_FILES = GS_CONFIGS[args.mode]['GS_NUM_FILES']
+    GS_OFFSET = GS_CONFIGS[args.mode]['GS_OFFSET']
+    GS_HEADER_LEN = 72 * (GS_NUM_FILES + 2)   # 648 with HT802, 720 with GXP16xx (72 is the GCD of 648 and 720)
+
+    args.input.seek(GS_OFFSET)
+
     if args.subparser_name == 'info':
         info(args.input, args.verbose, args.key)
     elif args.subparser_name == 'extract':
