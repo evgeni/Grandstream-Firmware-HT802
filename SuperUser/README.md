@@ -1,4 +1,7 @@
 # GrandStream Super User
+
+## HT802 and similar
+
 - Connect to ssh and login with admin account
 - Run command `gssu`
 - Copy the challenge
@@ -23,6 +26,31 @@ conf             lang             sbin             var
 core             lib              sys
 country_profile  oem              test
 # 
+```
+
+## HT802V2 and similar
+
+- Connect as `root` via SSH. (Only works if you've sneaked in your key into `/.ssh/authorized_keys` somehow!)
+- Dropbear will automatically launch `gssu` for `root`
+- Copy the challenge and the PN
+- Run `python3 GSSU.py PN CHALLENGE`
+- Copy the response and paste it in the ssh shell
+- Enjoy your root shell ;-)
+
+Example:
+```
+% ./GSSU.py 9610001234A e00288708f0597ae1ebb169ad3e9cc53
+Grandstream Super User by BigNerd95
+
+Response: 97af1fd5a3f3ab48
+Response HT8XXV2: 8326356c77596b780cb0342d6d4b32db
+
+% ssh root@192.168.1.100
+PN: 9610001234A
+Challenge: e00288708f0597ae1ebb169ad3e9cc53
+Response:
+/ # uname -a
+Linux HT8XXV2 4.4.143 #108 SMP PREEMPT Mon May 13 18:12:49 CST 2024 armv7l GNU/Linux
 ```
 
 # Direct root shell (run time patch)
