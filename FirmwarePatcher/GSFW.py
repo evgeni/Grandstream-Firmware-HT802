@@ -13,14 +13,23 @@ GS_CONFIGS = {
     'HT8xx': {
         'GS_NUM_FILES': 7,
         'GS_OFFSET': 0,
+        'FILE_SEEK': None,
+        'FILE_HEADER_LEN': 512,
+        'FILE_HEADER_CRYPT': 32,
     },
     'GXP16xx': {
         'GS_NUM_FILES': 8,
         'GS_OFFSET': 0,
+        'FILE_SEEK': None,
+        'FILE_HEADER_LEN': 512,
+        'FILE_HEADER_CRYPT': 32,
     },
     'HT8xxV2': {
         'GS_NUM_FILES': 16,
         'GS_OFFSET': 16*16,
+        'FILE_SEEK': 0x700,
+        'FILE_HEADER_LEN': 512,
+        'FILE_HEADER_CRYPT': 512,
     },
 }
 GS_MODES = list(GS_CONFIGS.keys())
@@ -82,13 +91,19 @@ def parseHeaderFW(header):
 
     return magic, filenames, filesizes, filevers
 
-def parseHeaderFile(header):
-    keys = ["magic_file", "version_file", "size_max", "size_file", "image_id", "checksum_file", "ts_year", "ts_day", "ts_month", "ts_min", "ts_hour", "oem_id", "FV_V_Mask", "supp_bits_1", "supp_bits_2", "supp_bits_3", "supp_bits_4", "v1", "v2"]
-    values = struct.unpack("<IIIIHHHBBBBHIHHHHII", header[:48])
+def parseHeaderFile(header, mode):
+    if mode in ['HT8xxV2']:
+        keys = ["magic_file", "version_file", "size_max", "size_file", "image_id", "checksum_file", "ts_year", "ts_day", "ts_month", "ts_min", "ts_hour", "hw_id", "FV_V_Mask", "supp_bits_1", "supp_bits_2", "supp_bits_3", "supp_bits_4", "oem_id", "prov_count", "image_name"]
+        values = struct.unpack("<IIIIHHHBBBBHHHHHHHI4s", header[:48])
+    else:
+        keys = ["magic_file", "version_file", "size_max", "size_file", "image_id", "checksum_file", "ts_year", "ts_day", "ts_month", "ts_min", "ts_hour", "oem_id", "FV_V_Mask", "supp_bits_1", "supp_bits_2", "supp_bits_3", "supp_bits_4", "v1", "v2"]
+        values = struct.unpack("<IIIIHHHBBBBHIHHHHII", header[:48])
     infos = dict(zip(keys, values))
     infos["version_file"] = socket.inet_ntoa(struct.pack(">I", infos["version_file"]))
-    infos["v1"] = socket.inet_ntoa(struct.pack(">I", infos["v1"]))
-    infos["v2"] = socket.inet_ntoa(struct.pack(">I", infos["v2"]))
+    if 'v1' in infos:
+        infos["v1"] = socket.inet_ntoa(struct.pack(">I", infos["v1"]))
+    if 'v2' in infos:
+        infos["v2"] = socket.inet_ntoa(struct.pack(">I", infos["v2"]))
     return infos
 
 def patchHeaderFW(header, index, newversion, newsize):
@@ -116,13 +131,13 @@ def valid_key(key):
     except ValueError:
         raise ArgumentTypeError(err)
 
-def decrypt_file(input_data, key):
+def decrypt_file(input_data, key, hdrlen=512, cryptlen=32):
 
     key = GrandStupidity(key)
     print("\t\tHead key:", key)
 
-    header = input_data[:512]
-    header_plain32 = GSdecrypt(bytes.fromhex(key), header[:32])
+    header = input_data[:hdrlen]
+    header_plain32 = GSdecrypt(bytes.fromhex(key), header[:cryptlen])
     magic = struct.unpack("<I", header_plain32[:4])[0]
 
     if magic != GS_MAGIC:
@@ -133,9 +148,9 @@ def decrypt_file(input_data, key):
     print("\t\tBody key:", binascii.hexlify(body_key).decode("ascii"))
     
     print("\t\tDecrypting...")
-    body_plain = GSdecrypt(body_key, input_data[512:])
+    body_plain = GSdecrypt(body_key, input_data[hdrlen:])
 
-    return header_plain32 + header[32:] + body_plain
+    return header_plain32 + header[cryptlen:] + body_plain
 
 def encrypt_file(input_data, key):
 
@@ -162,7 +177,7 @@ def computeChecksum(data):
 
 #########################################################
 
-def info(input_file, verbose, key):
+def info(input_file, verbose, key, mode):
     print('** Firmware Info **')
 
     magic, filenames, filesizes, filevers = parseHeaderFW(input_file.read(GS_HEADER_LEN))
@@ -175,27 +190,35 @@ def info(input_file, verbose, key):
         print("Used key:", key)
     
     print("Contained files:")
-    
+
+    if (file_seek := GS_CONFIGS[mode]['FILE_SEEK']) is not None:
+        input_file.seek(file_seek)
+
     for name, ver, size in zip(filenames, filevers, filesizes):
         if name:
             print("\t", name, "\tversion:", ver, "\tsize:", size, "bytes")
             
             if verbose:
+                FILE_HEADER_LEN = GS_CONFIGS[mode]['FILE_HEADER_LEN']
                 file_data = input_file.read(size)
-                plain_data = decrypt_file(file_data, key)
-                file_infos = parseHeaderFile(plain_data[:512])
+                plain_data = decrypt_file(file_data, key, FILE_HEADER_LEN, GS_CONFIGS[mode]['FILE_HEADER_CRYPT'])
+                file_infos = parseHeaderFile(plain_data, mode)
                 print("\t\tDate:", str(file_infos["ts_year"]) + "/" + str(file_infos["ts_month"]) + "/" + str(file_infos["ts_day"]) + " " + str(file_infos["ts_hour"]) + ":" + str(file_infos["ts_min"]))
-                print("\t\tv1:", file_infos["v1"])
-                print("\t\tv2:", file_infos["v2"])
+                if 'v1' in file_infos: print("\t\tv1:", file_infos["v1"])
+                if 'v2' in file_infos: print("\t\tv2:", file_infos["v2"])
+                print("\t\tversion_file:", file_infos["version_file"])
+                print("\t\tchecksum_file:", file_infos["checksum_file"])
+                print("\t\tsize_file:", file_infos["size_file"])
+                print("\t\texpected_size:", len(plain_data[FILE_HEADER_LEN:]))
                 print("\t\tCorrect magic:   ", file_infos["magic_file"] == GS_MAGIC)
                 print("\t\tCorrect version: ", file_infos["version_file"] == ver)
-                print("\t\tCorrect size:    ", file_infos["size_file"] == size-512 and file_infos["size_file"] == len(plain_data[512:]))
-                print("\t\tCorrect checksum:", file_infos["checksum_file"] == computeChecksum(plain_data[512:]))
+                print("\t\tCorrect size:    ", file_infos["size_file"] == size-FILE_HEADER_LEN and file_infos["size_file"] == len(plain_data[FILE_HEADER_LEN:]))
+                print("\t\tCorrect checksum:", file_infos["checksum_file"] == computeChecksum(plain_data[FILE_HEADER_LEN:]))
                 print("")
 
     input_file.close()
 
-def extract(input_file, output_dir, key):
+def extract(input_file, output_dir, key, mode):
     print('** Firmware Extract **')
     
     output_dir = os.path.join(output_dir, '')
@@ -208,11 +231,14 @@ def extract(input_file, output_dir, key):
     if magic != GS_MAGIC:
         print("Invalid magic!")
         return
-    
+
     print("Used key:", key)
 
     print("Extracting files:")
-    
+
+    if (file_seek := GS_CONFIGS[mode]['FILE_SEEK']) is not None:
+        input_file.seek(file_seek)
+
     for name, ver, size in zip(filenames, filevers, filesizes):
         if name:
             print("\t", output_dir + name, "\tversion:", ver, "\tsize:", size, "bytes")
@@ -326,9 +352,9 @@ def main():
     args.input.seek(GS_OFFSET)
 
     if args.subparser_name == 'info':
-        info(args.input, args.verbose, args.key)
+        info(args.input, args.verbose, args.key, args.mode)
     elif args.subparser_name == 'extract':
-        extract(args.input, args.directory, args.key)
+        extract(args.input, args.directory, args.key, args.mode)
     elif args.subparser_name == 'patch':
         patch(args.input, args.output, args.name, args.body, args.version, args.key)
 
